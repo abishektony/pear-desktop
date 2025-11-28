@@ -536,7 +536,7 @@
     text-align: right;
 }
 
-@media (max-height: 700px) {
+@media (max-height: 700px) and (max-width: 600px) {
     .pear-fullscreen-media {
         max-width: 250px;
         margin-bottom: 15px;
@@ -552,6 +552,7 @@
 
     .pear-fullscreen-seek {
         margin-bottom: 15px;
+        width: 90vw;
     }
 
     .pear-fullscreen-controls {
@@ -581,7 +582,8 @@
     .pear-fullscreen-media {
         max-width: 350px;
         margin-bottom: 40px;
-        margin-top: -40px; /* Move image up */
+        margin-top: -40px;
+        /* Move image up */
     }
 
     .pear-fullscreen-info {
@@ -638,7 +640,8 @@
 @media (min-width: 1400px) {
     .pear-fullscreen-media {
         max-width: 400px;
-        margin-top: -60px; /* Move image even higher */
+        margin-top: -60px;
+        /* Move image even higher */
     }
 
     .pear-fullscreen-controls {
@@ -748,7 +751,7 @@
 
 /* Compact current lyric display for bottom mode */
 .pear-fullscreen-current-lyric {
-    display: none !important;
+    display: block;
     z-index: 10;
     position: relative;
     width: 80vw;
@@ -809,24 +812,41 @@
     display: none !important;
 }
 
-/* Show on bottom mode only */
-@media (max-width: 799px) {
+/* Show compact lyrics on all screen sizes when lyrics are active */
+.pear-fullscreen-player.lyrics-open .pear-fullscreen-current-lyric {
+    display: block !important;
+    opacity: 1;
+    max-height: 100px;
+}
+
+/* On larger screens (800px+), hide compact lyrics since we have the side panel */
+@media (min-width: 800px) {
     .pear-fullscreen-player.lyrics-open .pear-fullscreen-current-lyric {
-        display: block !important;
-        opacity: 1;
+        display: none !important;
     }
 }
 
 /* Adjust for very small screens */
-@media (max-width: 400px) {
-    .pear-fullscreen-current-lyric {
-        bottom: 120px;
-        padding: 8px 16px;
-        max-width: 90%;
-    }
+@media (max-width: 450px) {
 
     .pear-fullscreen-current-lyric-text {
         font-size: 14px;
+    }
+    .pear-fullscreen-volume-value {
+        display: none !important;
+    }
+    .pear-fullscreen-content{
+        width: 98vw;
+        padding: 5px 2px 5px;
+    }
+    .pear-fullscreen-bottom-controls{
+        transform: translateX(-8px);
+    }
+    .pear-fullscreen-btn.volume-btn{
+        display: none !important;
+    }
+    .pear-fullscreen-close{
+        height: 38px;
     }
 }
 

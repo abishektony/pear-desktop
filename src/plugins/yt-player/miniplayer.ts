@@ -1216,26 +1216,19 @@ export class Miniplayer {
     }
 
     private updateLyricsButtonVisibility() {
+        // Always show lyrics button - compact mode will be used on small screens
         if (!this.fullscreenLyricsButton) return;
-
-        if (window.innerWidth < 460) {
-            this.fullscreenLyricsButton.style.display = 'none';
-            if (this.isLyricsOpen) {
-                this.toggleLyrics();
-            }
-        } else {
-            this.fullscreenLyricsButton.style.display = '';
-        }
+        this.fullscreenLyricsButton.style.display = '';
     }
 
     private updateFullscreenVisibility() {
         if (!this.fullscreenPlayer) return;
-        
+
         const width = window.innerWidth;
         const height = window.innerHeight;
-        
+
         // Hide fullscreen player if window is too small (less than 400x570)
-        if (width < 400 || height < 570) {
+        if (height < 570) {
             this.fullscreenPlayer.style.display = 'none';
         } else {
             this.fullscreenPlayer.style.display = '';
@@ -1278,6 +1271,15 @@ export class Miniplayer {
                 this.fullscreenLyricsPanel.classList.remove('active');
                 this.fullscreenPlayer.classList.remove('lyrics-open');
                 this.fullscreenLyricsButton?.classList.remove('active');
+
+                // Clear and hide compact lyrics box
+                if (this.fullscreenCurrentLyricText) {
+                    this.fullscreenCurrentLyricText.innerHTML = '';
+                }
+                if (this.fullscreenCurrentLyric) {
+                    this.fullscreenCurrentLyric.classList.remove('visible');
+                }
+                this.currentLyricText = '';
             } catch (error) {
                 console.error('[Miniplayer] Failed to unmount lyrics:', error);
             }
@@ -1290,7 +1292,7 @@ export class Miniplayer {
         if (!this.fullscreenCurrentLyricText || !this.isLyricsOpen) return;
 
         // Check if we're in bottom mode (400-799px width)
-        const isBottomMode = window.innerWidth >= 400 && window.innerWidth <= 799;
+        const isBottomMode = window.innerWidth >= 300 && window.innerWidth <= 799;
         if (!isBottomMode) {
             this.fullscreenCurrentLyricText.innerHTML = '';
             this.currentLyricText = '';
@@ -1353,7 +1355,7 @@ export class Miniplayer {
                     musicSymbol.className = 'lyric-word music-symbol';
                     musicSymbol.textContent = '♪';
                     this.fullscreenCurrentLyricText!.appendChild(musicSymbol);
-                    
+
                     if (this.fullscreenCurrentLyric) {
                         this.fullscreenCurrentLyric.classList.add('visible');
                     }
