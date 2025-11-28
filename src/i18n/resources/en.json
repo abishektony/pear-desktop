@@ -647,6 +647,52 @@
       "description": "Remove Google login buttons and links from the interface",
       "name": "No Google Login"
     },
+    "miniplayer": {
+      "description": "Custom mobile-friendly miniplayer that replaces YouTube Music's player on small screens",
+      "name": "Miniplayer",
+      "menu": {
+        "visualizer-enabled": "Visualizer Enabled",
+        "video-enabled": "Video Enabled",
+        "click-to-switch": "Click to Switch Mode",
+        "visualizer-style": {
+          "label": "Visualizer Style",
+          "bars": "Bars",
+          "wave": "Wave"
+        }
+      }
+    },
+    "pear-connect": {
+      "description": "Connect mobile devices to control Pear Desktop remotely (Spotify Connect-style)",
+      "name": "Pear Connect",
+      "menu": {
+        "show-qr": "Show QR Code",
+        "connected-devices": "Connected Devices",
+        "disconnect-all": "Disconnect All"
+      },
+      "ui": {
+        "connection": "Connection",
+        "connected-devices": "Connected Devices",
+        "no-devices": "No devices connected"
+      },
+      "dialog": {
+        "pairing": {
+          "title": "Pair New Device",
+          "instructions": "Scan the QR code with your mobile app or enter the pairing code:",
+          "expires": "Code expires in {{time}}"
+        },
+        "devices": {
+          "title": "Connected Devices",
+          "empty": "No devices connected",
+          "disconnect": "Disconnect"
+        }
+      },
+      "toast": {
+        "device-connected": "{{name}} connected",
+        "device-disconnected": "{{name}} disconnected",
+        "pairing-expired": "Pairing code expired",
+        "max-connections": "Maximum connections reached"
+      }
+    },
     "notifications": {
       "description": "Display a notification when a song starts playing (interactive notifications are available on Windows)",
       "menu": {
@@ -945,6 +991,15 @@
         "visualizer-type": "Visualizer Type"
       },
       "name": "Visualizer"
+    },
+    "ytplayer": {
+      "description": "Custom enhanced player with better UI and controls",
+      "name": "YT Player",
+      "prev": "Previous",
+      "play": "Play/Pause",
+      "next": "Next",
+      "lyrics": "Lyrics",
+      "queue": "Queue"
     }
   }
 }

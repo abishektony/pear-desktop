@@ -120,7 +120,7 @@ app.commandLine.appendSwitch(
   'OverlayScrollbar,SharedArrayBuffer,UseOzonePlatform,WaylandWindowDecorations',
 );
 // Disable Fluent Scrollbar (for OverlayScrollbar)
-app.commandLine.appendSwitch('disable-features', 'FluentScrollbar');
+app.commandLine.appendSwitch('disable-features', 'FluentScrollbar,Autofill');
 if (config.get('options.disableHardwareAcceleration')) {
   if (is.dev()) {
     console.log('Disabling hardware acceleration');
@@ -353,8 +353,8 @@ async function createMainWindow() {
     icon,
     width: windowSize.width,
     height: windowSize.height,
-    minWidth: 325,
-    minHeight: 425,
+    minWidth: 300,
+    minHeight: 113,
     backgroundColor: '#000',
     show: false,
     webPreferences: {
@@ -634,6 +634,8 @@ const getDefaultLocale = async (locale: string) =>
   Object.keys(await languageResources()).includes(locale) ? locale : null;
 
 app.whenReady().then(async () => {
+  session.defaultSession.setMaxListeners(20);
+
   if (!config.get('options.language')) {
     const locale = await getDefaultLocale(app.getLocale());
     if (locale) {

@@ -71,26 +71,33 @@ async function onApiLoaded() {
     );
 
   window.ipcRenderer.on('peard:previous-video', () => {
+    console.log('[Pear Remote] Previous video IPC received');
     document
       .querySelector<HTMLElement>('.previous-button.ytmusic-player-bar')
       ?.click();
   });
   window.ipcRenderer.on('peard:next-video', () => {
+    console.log('[Pear Remote] Next video IPC received');
     document
       .querySelector<HTMLElement>('.next-button.ytmusic-player-bar')
       ?.click();
   });
   window.ipcRenderer.on('peard:play', (_) => {
+    console.log('[Pear Remote] Play IPC received, api:', api);
     api?.playVideo();
   });
   window.ipcRenderer.on('peard:pause', (_) => {
+    console.log('[Pear Remote] Pause IPC received, api:', api);
     api?.pauseVideo();
   });
   window.ipcRenderer.on('peard:toggle-play', (_) => {
     if (api?.getPlayerState() === 2) api?.playVideo();
     else api?.pauseVideo();
   });
-  window.ipcRenderer.on('peard:seek-to', (_, t: number) => api!.seekTo(t));
+  window.ipcRenderer.on('peard:seek-to', (_, t: number) => {
+    console.log('[Pear Remote] Seek to IPC received:', t);
+    api!.seekTo(t);
+  });
   window.ipcRenderer.on('peard:seek-by', (_, t: number) => api!.seekBy(t));
   window.ipcRenderer.on('peard:shuffle', () => {
     document
@@ -133,6 +140,7 @@ async function onApiLoaded() {
     }
   });
   window.ipcRenderer.on('peard:update-volume', (_, volume: number) => {
+    console.log('[Pear Remote] Update volume IPC received:', volume);
     document
       .querySelector<
         HTMLElement & { updateVolume: (volume: number) => void }
@@ -222,13 +230,13 @@ async function onApiLoaded() {
                 index:
                   queueInsertPosition === 'INSERT_AFTER_CURRENT_VIDEO'
                     ? queueItems.findIndex(
-                        (it) =>
-                          (
-                            it.playlistPanelVideoRenderer ||
-                            it.playlistPanelVideoWrapperRenderer
-                              ?.primaryRenderer.playlistPanelVideoRenderer
-                          )?.selected,
-                      ) + 1 || queueItemsLength
+                      (it) =>
+                        (
+                          it.playlistPanelVideoRenderer ||
+                          it.playlistPanelVideoWrapperRenderer
+                            ?.primaryRenderer.playlistPanelVideoRenderer
+                        )?.selected,
+                    ) + 1 || queueItemsLength
                     : queueItemsLength,
                 items: result.queueDatas
                   .map((it) =>
@@ -316,6 +324,10 @@ async function onApiLoaded() {
   const audioSource = audioContext.createMediaElementSource(video);
   audioSource.connect(audioContext.destination);
 
+  // Expose for plugins that load late
+  (window as any).peardAudioContext = audioContext;
+  (window as any).peardAudioSource = audioSource;
+
   for (const [id, plugin] of Object.entries(getAllLoadedRendererPlugins())) {
     if (typeof plugin.renderer !== 'function') {
       await plugin.renderer?.onPlayerApiReady?.call(
@@ -394,14 +406,12 @@ async function onApiLoaded() {
     const style = document.createElement('style');
     style.textContent = `
       ytmusic-player-bar[is-mweb-player-bar-modernization-enabled] .middle-controls-buttons.ytmusic-player-bar, #like-button-renderer {
-        display: ${
-          likeButtonsOptions === 'hide' ? 'none' : 'inherit'
-        } !important;
+        display: ${likeButtonsOptions === 'hide' ? 'none' : 'inherit'
+      } !important;
       }
       ytmusic-player-bar[is-mweb-player-bar-modernization-enabled] .middle-controls.ytmusic-player-bar {
-        justify-content: ${
-          likeButtonsOptions === 'hide' ? 'flex-start' : 'space-between'
-        } !important;
+        justify-content: ${likeButtonsOptions === 'hide' ? 'flex-start' : 'space-between'
+      } !important;
       }`;
 
     document.head.appendChild(style);
@@ -412,7 +422,7 @@ async function onApiLoaded() {
  * Original still using ES5, so we need to define custom elements using ES5 style
  */
 const definePearTransElements = () => {
-  const PearTrans = function () {};
+  const PearTrans = function () { };
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   PearTrans.prototype = Object.create(HTMLElement.prototype);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

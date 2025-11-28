@@ -1,11 +1,6 @@
 import type { LyricProvider, LyricResult, SearchSongInfo } from '../types';
 import type { MusicPlayerAppElement } from '@/types/music-player-app-element';
 
-const headers = {
-  'Accept': 'application/json',
-  'Content-Type': 'application/json',
-};
-
 const client = {
   clientName: '26',
   clientVersion: '7.01.05',
@@ -27,7 +22,7 @@ export class YTMusic implements LyricProvider {
         ?.watchNextTabbedResultsRenderer ?? {};
     if (!Array.isArray(tabs)) return null;
 
-    const lyricsTab = tabs.find((it) => {
+    const lyricsTab = tabs.find((it: any) => {
       const pageType = it?.tabRenderer?.endpoint?.browseEndpoint
         ?.browseEndpointContextSupportedConfigs
         ?.browseEndpointContextMusicConfig?.pageType;
@@ -39,19 +34,20 @@ export class YTMusic implements LyricProvider {
     const { browseId } = lyricsTab?.tabRenderer?.endpoint?.browseEndpoint ?? {};
     if (!browseId) return null;
 
-    const { contents } = await this.fetchBrowse(browseId);
-    if (!contents) return null;
+    const browseData = await this.fetchBrowse(browseId);
+    if (!browseData || !browseData.contents) return null;
+    const { contents } = browseData;
 
     /*
       NOTE: Due to the nature of the library, the json responses are not consistent,
-            this means we have to check for multiple possible paths to get the lyrics.
+      this means we have to check for multiple possible paths to get the lyrics.
     */
 
     const syncedLines = contents?.elementRenderer?.newElement?.type
       ?.componentType?.model?.timedLyricsModel?.lyricsData?.timedLyricsData;
 
     const synced = syncedLines?.length && syncedLines[0]?.cueRange
-      ? syncedLines.map((it) => ({
+      ? syncedLines.map((it: any) => ({
         time: this.millisToTime(parseInt(it.cueRange.startTimeMilliseconds)),
         timeInMs: parseInt(it.cueRange.startTimeMilliseconds),
         duration: parseInt(it.cueRange.endTimeMilliseconds) -
@@ -63,13 +59,13 @@ export class YTMusic implements LyricProvider {
 
     const plain = !synced
       ? syncedLines?.length
-        ? syncedLines.map((it) => it.lyricLine).join('\n')
+        ? syncedLines.map((it: any) => it.lyricLine).join('\n')
         : contents?.messageRenderer
-        ? contents?.messageRenderer?.text?.runs?.map((it) => it.text).join('\n')
-        : contents?.sectionListRenderer?.contents?.[0]
-          ?.musicDescriptionShelfRenderer?.description?.runs?.map((it) =>
-            it.text
-          )?.join('\n')
+          ? contents?.messageRenderer?.text?.runs?.map((it: any) => it.text).join('\n')
+          : contents?.sectionListRenderer?.contents?.[0]
+            ?.musicDescriptionShelfRenderer?.description?.runs?.map((it: any) =>
+              it.text
+            )?.join('\n')
       : undefined;
 
     if (typeof plain === 'string' && plain === 'Lyrics not available') {
@@ -85,6 +81,8 @@ export class YTMusic implements LyricProvider {
         status: 'upcoming' as const,
       });
     }
+
+    if (!synced && !plain) return null;
 
     return {
       title,
@@ -104,9 +102,6 @@ export class YTMusic implements LyricProvider {
       .padStart(2, '0')}.${remaining.toString().padStart(2, '0')}`;
   }
 
-  // RATE LIMITED (2 req per sec)
-  private PROXIED_ENDPOINT = 'https://ytmbrowseproxy.zvz.be/';
-
   private fetchNext(videoId: string) {
     const app = document.querySelector<MusicPlayerAppElement>('ytmusic-app');
 
@@ -123,14 +118,20 @@ export class YTMusic implements LyricProvider {
   }
 
   private fetchBrowse(browseId: string) {
-    return fetch(this.PROXIED_ENDPOINT + 'browse?prettyPrint=false', {
-      headers,
-      method: 'POST',
-      body: JSON.stringify({
-        browseId,
-        context: { client },
-      }),
-    }).then((res) => res.json()) as Promise<BrowseData>;
+    const app = document.querySelector<MusicPlayerAppElement>('ytmusic-app');
+
+    if (!app) return null;
+
+    return app.networkManager.fetch<
+      BrowseData,
+      {
+        browseId: string;
+        context: typeof client;
+      }
+    >('/browse?prettyPrint=false', {
+      browseId,
+      context: client,
+    });
   }
 }
 

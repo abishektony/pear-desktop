@@ -1,0 +1,1122 @@
+/* Pear Connect Styles - Blue/Black Theme */
+.pear-connect-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #000;
+  border: 2px solid #1e90ff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(30, 144, 255, 0.3);
+  z-index: 10000;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.pear-connect-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+}
+
+.pear-connect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.pear-connect-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+}
+
+.pear-connect-close {
+  background: none;
+  border: none;
+  color: var(--yt-spec-text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.pear-connect-close:hover {
+  background: var(--yt-spec-10-percent-layer);
+}
+
+.pear-connect-qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.pear-connect-qr-code {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 16px;
+}
+
+.pear-connect-pairing-code {
+  font-size: 32px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  color: #000;
+  font-family: 'Courier New', monospace;
+}
+
+.pear-connect-instructions {
+  color: var(--yt-spec-text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.pear-connect-clients {
+  margin-top: 20px;
+}
+
+.pear-connect-client-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.pear-connect-client-info {
+  flex: 1;
+}
+
+.pear-connect-client-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 4px;
+}
+
+.pear-connect-client-details {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-disconnect-btn {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.pear-connect-disconnect-btn:hover {
+  opacity: 0.8;
+}
+
+.pear-connect-button {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: opacity 0.2s;
+  width: 100%;
+}
+
+.pear-connect-button:hover {
+  opacity: 0.8;
+}
+
+.pear-connect-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.pear-connect-icon:hover {
+  opacity: 1;
+}
+
+.pear-connect-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+  margin-bottom: 16px;
+}
+
+.pear-connect-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pear-connect-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Manager UI Styles */
+.pear-connect-manager {
+  padding: 20px;
+}
+
+.pear-connect-section {
+  margin-bottom: 30px;
+}
+
+.pear-connect-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pear-connect-device-count {
+  font-size: 14px;
+  color: var(--yt-spec-text-secondary);
+  font-weight: 400;
+}
+
+.pear-connect-server-info {
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.pear-connect-info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--yt-spec-10-percent-layer);
+}
+
+.pear-connect-info-item:last-child {
+  border-bottom: none;
+}
+
+.pear-connect-info-label {
+  font-weight: 500;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-info-value {
+  color: var(--yt-spec-text-primary);
+  font-family: 'Courier New', monospace;
+}
+
+.pear-connect-qr-section {
+  text-align: center;
+  background: #0a0a0a;
+  border: 1px solid #1e90ff;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.pear-connect-qr-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e90ff;
+  margin-bottom: 16px;
+}
+
+.pear-connect-qr-canvas {
+  display: block;
+  margin: 0 auto 20px;
+  border-radius: 8px;
+}
+
+.pear-connect-pairing-info {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #eee;
+}
+
+.pear-connect-pairing-label {
+  font-size: 14px;
+  color: #4da6ff;
+  margin-bottom: 8px;
+}
+
+.pear-connect-code-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pear-connect-pairing-code {
+  font-size: 36px;
+  font-weight: bold;
+  letter-spacing: 8px;
+  color: #1e90ff;
+  font-family: 'Courier New', monospace;
+}
+
+.pear-connect-copy-btn {
+  background: #1e90ff;
+  border: none;
+  color: #000;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+}
+
+.pear-connect-copy-btn:hover {
+  background: #4da6ff;
+  transform: scale(1.05);
+}
+
+.pear-connect-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.pear-connect-pairing-timer {
+  font-size: 12px;
+  color: #4da6ff9c;
+}
+
+.pear-connect-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pear-connect-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.pear-connect-device:hover {
+  background: var(--yt-spec-badge-chip-background);
+}
+
+.pear-connect-device-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yt-spec-base-background);
+  border-radius: 50%;
+}
+
+.pear-connect-device-info {
+  flex: 1;
+}
+
+.pear-connect-device-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 4px;
+}
+
+.pear-connect-device-details {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-device-disconnect {
+  background: var(--yt-spec-text-primary-inverse);
+  color: var(--yt-spec-text-primary);
+  border: 1px solid var(--yt-spec-10-percent-layer);
+  padding: 8px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pear-connect-device-disconnect:hover {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border-color: var(--yt-spec-call-to-action);
+}
+
+.pear-connect-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--yt-spec-text-secondary);
+  font-size: 14px;
+}
+
+/* Queue item highlighting */
+.queue-item {
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.queue-item.current {
+  background: rgba(30, 144, 255, 0.15) !important;
+  border-left: 3px solid #1e90ff !important;
+  padding-left: calc(12px - 3px) !important;
+}
+
+.queue-item.current::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1e90ff;
+  font-size: 12px;
+  animation: playPulse 1.5s ease-in-out infinite;
+}
+
+.queue-item.current .queue-item-thumbnail {
+  border: 2px solid #1e90ff;
+  box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
+}
+
+.queue-item.current .queue-item-title {
+  color: #1e90ff;
+  font-weight: 600;
+}
+
+@keyframes playPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Queue item position badges */
+.queue-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.queue-item-badge.now-playing {
+  background: rgba(30, 144, 255, 0.3);
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+}
+
+.queue-item-badge.up-next {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.queue-item-badge.played {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.queue-item-badge.position {
+  margin-bottom: 8px;
+}
+
+.pear-connect-code-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.pear-connect-pairing-code {
+  font-size: 36px;
+  font-weight: bold;
+  letter-spacing: 8px;
+  color: #1e90ff;
+  font-family: 'Courier New', monospace;
+}
+
+.pear-connect-copy-btn {
+  background: #1e90ff;
+  border: none;
+  color: #000;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(30, 144, 255, 0.3);
+}
+
+.pear-connect-copy-btn:hover {
+  background: #4da6ff;
+  transform: scale(1.05);
+}
+
+.pear-connect-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.pear-connect-pairing-timer {
+  font-size: 12px;
+  color: #4da6ff9c;
+}
+
+.pear-connect-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pear-connect-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.pear-connect-device:hover {
+  background: var(--yt-spec-badge-chip-background);
+}
+
+.pear-connect-device-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yt-spec-base-background);
+  border-radius: 50%;
+}
+
+.pear-connect-device-info {
+  flex: 1;
+}
+
+.pear-connect-device-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 4px;
+}
+
+.pear-connect-device-details {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-device-disconnect {
+  background: var(--yt-spec-text-primary-inverse);
+  color: var(--yt-spec-text-primary);
+  border: 1px solid var(--yt-spec-10-percent-layer);
+  padding: 8px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pear-connect-device-disconnect:hover {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border-color: var(--yt-spec-call-to-action);
+}
+
+.pear-connect-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--yt-spec-text-secondary);
+  font-size: 14px;
+}
+
+/* Queue item highlighting */
+.queue-item {
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.queue-item.current {
+  background: rgba(30, 144, 255, 0.15) !important;
+  border-left: 3px solid #1e90ff !important;
+  padding-left: calc(12px - 3px) !important;
+}
+
+.queue-item.current::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1e90ff;
+  font-size: 12px;
+  animation: playPulse 1.5s ease-in-out infinite;
+}
+
+.queue-item.current .queue-item-thumbnail {
+  border: 2px solid #1e90ff;
+  box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
+}
+
+.queue-item.current .queue-item-title {
+  color: #1e90ff;
+  font-weight: 600;
+}
+
+@keyframes playPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Queue item position badges */
+.queue-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.queue-item-badge.now-playing {
+  background: rgba(30, 144, 255, 0.3);
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+}
+
+.queue-item-badge.up-next {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.queue-item-badge.played {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.queue-item-badge.position {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--yt-spec-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Pear Connect Sidebar Button Styling */
+#pear-connect-sidebar-item {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#pear-connect-sidebar-item:hover {
+  background: var(--yt-spec-10-percent-layer);
+}
+
+#pear-connect-sidebar-item .title {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  display: block !important;
+  border: none;
+  color: #000;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pear-connect-copy-btn:hover {
+  background: #4da6ff;
+  transform: scale(1.05);
+}
+
+.pear-connect-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.pear-connect-pairing-timer {
+  font-size: 12px;
+  color: #4da6ff9c;
+}
+
+.pear-connect-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pear-connect-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.pear-connect-device:hover {
+  background: var(--yt-spec-badge-chip-background);
+}
+
+.pear-connect-device-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yt-spec-base-background);
+  border-radius: 50%;
+}
+
+.pear-connect-device-info {
+  flex: 1;
+}
+
+.pear-connect-device-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 4px;
+}
+
+.pear-connect-device-details {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-device-disconnect {
+  background: var(--yt-spec-text-primary-inverse);
+  color: var(--yt-spec-text-primary);
+  border: 1px solid var(--yt-spec-10-percent-layer);
+  padding: 8px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pear-connect-device-disconnect:hover {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border-color: var(--yt-spec-call-to-action);
+}
+
+.pear-connect-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--yt-spec-text-secondary);
+  font-size: 14px;
+}
+
+/* Queue item highlighting */
+.queue-item {
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.queue-item.current {
+  background: rgba(30, 144, 255, 0.15) !important;
+  border-left: 3px solid #1e90ff !important;
+  padding-left: calc(12px - 3px) !important;
+}
+
+.queue-item.current::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1e90ff;
+  font-size: 12px;
+  animation: playPulse 1.5s ease-in-out infinite;
+}
+
+.queue-item.current .queue-item-thumbnail {
+  border: 2px solid #1e90ff;
+  box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
+}
+
+.queue-item.current .queue-item-title {
+  color: #1e90ff;
+  font-weight: 600;
+}
+
+@keyframes playPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Queue item position badges */
+.queue-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.queue-item-badge.now-playing {
+  background: rgba(30, 144, 255, 0.3);
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+}
+
+.queue-item-badge.up-next {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.queue-item-badge.played {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.queue-item-badge.position {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--yt-spec-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Pear Connect Sidebar Button Styling */
+#pear-connect-sidebar-item {
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 200px !important;
+  width: auto !important;
+}
+
+#pear-connect-sidebar-item:hover {
+  background: var(--yt-spec-10-percent-layer);
+}
+
+#pear-connect-sidebar-item .title {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  display: block !important;
+  border: none;
+  color: #000;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.pear-connect-copy-btn:hover {
+  background: #4da6ff;
+  transform: scale(1.05);
+}
+
+.pear-connect-copy-btn:active {
+  transform: scale(0.95);
+}
+
+.pear-connect-pairing-timer {
+  font-size: 12px;
+  color: #4da6ff9c;
+}
+
+.pear-connect-devices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pear-connect-device {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--yt-spec-10-percent-layer);
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.pear-connect-device:hover {
+  background: var(--yt-spec-badge-chip-background);
+}
+
+.pear-connect-device-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--yt-spec-base-background);
+  border-radius: 50%;
+}
+
+.pear-connect-device-info {
+  flex: 1;
+}
+
+.pear-connect-device-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--yt-spec-text-primary);
+  margin-bottom: 4px;
+}
+
+.pear-connect-device-details {
+  font-size: 12px;
+  color: var(--yt-spec-text-secondary);
+}
+
+.pear-connect-device-disconnect {
+  background: var(--yt-spec-text-primary-inverse);
+  color: var(--yt-spec-text-primary);
+  border: 1px solid var(--yt-spec-10-percent-layer);
+  padding: 8px 16px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.pear-connect-device-disconnect:hover {
+  background: var(--yt-spec-call-to-action);
+  color: white;
+  border-color: var(--yt-spec-call-to-action);
+}
+
+.pear-connect-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--yt-spec-text-secondary);
+  font-size: 14px;
+}
+
+/* Queue item highlighting */
+.queue-item {
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.queue-item.current {
+  background: rgba(30, 144, 255, 0.15) !important;
+  border-left: 3px solid #1e90ff !important;
+  padding-left: calc(12px - 3px) !important;
+}
+
+.queue-item.current::before {
+  content: '▶';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1e90ff;
+  font-size: 12px;
+  animation: playPulse 1.5s ease-in-out infinite;
+}
+
+.queue-item.current .queue-item-thumbnail {
+  border: 2px solid #1e90ff;
+  box-shadow: 0 0 8px rgba(30, 144, 255, 0.4);
+}
+
+.queue-item.current .queue-item-title {
+  color: #1e90ff;
+  font-weight: 600;
+}
+
+@keyframes playPulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Queue item position badges */
+.queue-item-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.queue-item-badge.now-playing {
+  background: rgba(30, 144, 255, 0.3);
+  color: #1e90ff;
+  border: 1px solid #1e90ff;
+}
+
+.queue-item-badge.up-next {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.4);
+}
+
+.queue-item-badge.played {
+  background: rgba(158, 158, 158, 0.2);
+  color: #9e9e9e;
+  border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.queue-item-badge.position {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--yt-spec-text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Pear Connect Sidebar Button Styling */
+#pear-connect-sidebar-item {
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 200px !important;
+  width: auto !important;
+}
+
+#pear-connect-sidebar-item:hover {
+  background: var(--yt-spec-10-percent-layer);
+}
+
+#pear-connect-sidebar-item tp-yt-paper-item {
+  width: 100% !important;
+  min-width: 200px !important;
+}
+
+#pear-connect-sidebar-item .title-column {
+  flex: 1 !important;
+  min-width: 120px !important;
+  overflow: visible !important;
+}
+
+#pear-connect-sidebar-item .title {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+#pear-connect-sidebar-item .guide-icon {
+  color: #ffffff !important;
+  margin-right: 24px !important;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  flex-shrink: 0 !important;
+}
+
+#pear-connect-sidebar-item:hover .guide-icon {
+  color: #4da6ff !important;
+  filter: drop-shadow(0 0 8px rgba(30, 144, 255, 0.8));
+}
+
+#pear-connect-sidebar-item:hover .title {
+  color: #1e90ff !important;
+}

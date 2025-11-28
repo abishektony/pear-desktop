@@ -62,6 +62,8 @@ export class DiscordService {
     this.mainWindow = mainWindow;
     this.autoReconnect = config?.autoReconnect ?? true; // Default autoReconnect to true
 
+    this.rpc.setMaxListeners(20);
+
     this.rpc.on('connected', () => {
       if (dev()) {
         console.log(LoggerPrefix, t('plugins.discord.backend.connected'));

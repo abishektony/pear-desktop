@@ -1,0 +1,72 @@
+<div class="pear-connect-manager">
+  <div class="pear-connect-section">
+    <div class="pear-connect-section-title">
+      Connection
+    </div>
+    
+    <div class="pear-connect-server-info">
+      <div class="pear-connect-info-item">
+        <span class="pear-connect-info-label">Status:</span>
+        <span class="pear-connect-info-value" id="pear-connect-status">Active</span>
+      </div>
+      <div class="pear-connect-info-item">
+        <span class="pear-connect-info-label">Port:</span>
+        <span class="pear-connect-info-value" id="pear-connect-port">8888</span>
+      </div>
+      <div class="pear-connect-info-item">
+        <span class="pear-connect-info-label">URL:</span>
+        <span class="pear-connect-info-value" id="pear-connect-url">http://192.168.1.100:8888</span>
+      </div>
+    </div>
+
+    <div class="pear-connect-qr-section">
+      <div class="pear-connect-qr-title">Scan to Connect</div>
+      <canvas id="pear-connect-qr-canvas" class="pear-connect-qr-canvas"></canvas>
+      <div class="pear-connect-pairing-info">
+        <div class="pear-connect-pairing-label">Or enter code:</div>
+        <div class="pear-connect-code-container">
+          <div class="pear-connect-pairing-code" id="pear-connect-pairing-code">------</div>
+          <button class="pear-connect-copy-btn" id="pear-connect-copy-btn" title="Copy code">
+            📋
+          </button>
+        </div>
+        <div class="pear-connect-pairing-timer" id="pear-connect-pairing-timer">Waiting for connection...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pear-connect-section">
+    <div class="pear-connect-section-title">
+      Connected Devices
+      <span class="pear-connect-device-count" id="pear-connect-device-count">(0)</span>
+    </div>
+    
+    <div class="pear-connect-devices" id="pear-connect-devices">
+      <div class="pear-connect-empty">
+        No devices connected
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Miniplayer -->
+<div class="pear-connect-miniplayer" id="pear-connect-miniplayer">
+  <div class="pear-connect-miniplayer-header">
+    <div class="pear-connect-miniplayer-thumbnail" id="pear-miniplayer-thumb"></div>
+    <div class="pear-connect-miniplayer-info">
+      <div class="pear-connect-miniplayer-title" id="pear-miniplayer-title">No song playing</div>
+      <div class="pear-connect-miniplayer-artist" id="pear-miniplayer-artist">-</div>
+    </div>
+  </div>
+  
+  <div class="pear-connect-miniplayer-controls">
+    <button class="pear-connect-miniplayer-btn" id="pear-miniplayer-prev" title="Previous">⏮</button>
+    <button class="pear-connect-miniplayer-btn play" id="pear-miniplayer-play" title="Play/Pause">▶</button>
+    <button class="pear-connect-miniplayer-btn" id="pear-miniplayer-next" title="Next">⏭</button>
+    <div class="pear-connect-miniplayer-seek" id="pear-miniplayer-seek">
+      <div class="pear-connect-miniplayer-seek-progress" id="pear-miniplayer-seek-progress" style="width: 0%"></div>
+    </div>
+  </div>
+  
+  <div class="pear-connect-miniplayer-time" id="pear-miniplayer-time">0:00 / 0:00</div>
+</div>

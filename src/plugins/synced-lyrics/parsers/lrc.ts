@@ -17,7 +17,8 @@ interface LRC {
 
 const tagRegex = /^\[(?<tag>\w+):\s*(?<value>.+?)\s*\]$/;
 // prettier-ignore
-const lyricRegex = /^\[(?<minutes>\d+):(?<seconds>\d+)\.(?<milliseconds>\d+)\](?<text>.+)$/;
+// prettier-ignore
+const lyricRegex = /^\[(?<minutes>\d+):(?<seconds>\d+)(?:\.(?<milliseconds>\d+))?\](?<text>.*)$/;
 
 export const LRC = {
   parse: (text: string): LRC => {
@@ -29,8 +30,9 @@ export const LRC = {
     let offset = 0;
     let previousLine: LRCLine | null = null;
 
-    for (const line of text.split('\n')) {
-      if (!line.trim().startsWith('[')) continue;
+    for (const rawLine of text.split('\n')) {
+      const line = rawLine.trim();
+      if (!line.startsWith('[')) continue;
 
       const lyric = line.match(lyricRegex)?.groups;
       if (!lyric) {
@@ -53,7 +55,7 @@ export const LRC = {
       const timeInMs =
         parseInt(minutes) * 60 * 1000 +
         parseInt(seconds) * 1000 +
-        parseInt(milliseconds);
+        (milliseconds ? parseInt(milliseconds.padEnd(3, '0').slice(0, 3)) : 0);
 
       const currentLine: LRCLine = {
         time: `${minutes}:${seconds}:${milliseconds}`,

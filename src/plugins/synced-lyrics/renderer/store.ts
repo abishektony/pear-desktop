@@ -51,6 +51,15 @@ interface SearchCache {
 
 // TODO: Maybe use localStorage for the cache.
 const searchCache = new Map<VideoId, SearchCache>();
+const isCurrentId = (id: string) => {
+  if (getSongInfo().videoId === id) return true;
+  try {
+    const urlVid = new URL(window.location.href).searchParams.get('v');
+    if (urlVid === id) return true;
+  } catch (e) { }
+  return false;
+};
+
 export const fetchLyrics = (info: SongInfo) => {
   if (searchCache.has(info.videoId)) {
     const cache = searchCache.get(info.videoId)!;
@@ -62,7 +71,7 @@ export const fetchLyrics = (info: SongInfo) => {
       return;
     }
 
-    if (getSongInfo().videoId === info.videoId) {
+    if (isCurrentId(info.videoId)) {
       setLyricsStore('lyrics', () => {
         // weird bug with solid-js
         return JSON.parse(JSON.stringify(cache.data)) as typeof cache.data;
@@ -78,7 +87,7 @@ export const fetchLyrics = (info: SongInfo) => {
   };
 
   searchCache.set(info.videoId, cache);
-  if (getSongInfo().videoId === info.videoId) {
+  if (isCurrentId(info.videoId)) {
     setLyricsStore('lyrics', () => {
       // weird bug with solid-js
       return JSON.parse(JSON.stringify(cache.data)) as typeof cache.data;
@@ -90,10 +99,10 @@ export const fetchLyrics = (info: SongInfo) => {
   // prettier-ignore
   for (
     const [providerName, provider] of Object.entries(providers) as [
-    ProviderName,
-    LyricProvider,
-  ][]
-    ) {
+      ProviderName,
+      LyricProvider,
+    ][]
+  ) {
     const pCache = cache.data[providerName];
 
     tasks.push(
@@ -103,7 +112,7 @@ export const fetchLyrics = (info: SongInfo) => {
           pCache.state = 'done';
           pCache.data = res;
 
-          if (getSongInfo().videoId === info.videoId) {
+          if (isCurrentId(info.videoId)) {
             setLyricsStore('lyrics', (old) => {
               return {
                 ...old,
@@ -122,7 +131,7 @@ export const fetchLyrics = (info: SongInfo) => {
 
           console.error(error);
 
-          if (getSongInfo().videoId === info.videoId) {
+          if (isCurrentId(info.videoId)) {
             setLyricsStore('lyrics', (old) => {
               return {
                 ...old,

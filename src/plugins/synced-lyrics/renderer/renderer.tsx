@@ -132,28 +132,37 @@ type LyricsRendererChild =
   | { kind: 'NotFoundKaomoji' }
   | { kind: 'Error'; error: Error }
   | {
-      kind: 'SyncedLine';
-      line: LineLyrics;
-    }
+    kind: 'SyncedLine';
+    line: LineLyrics;
+  }
   | {
-      kind: 'PlainLine';
-      line: string;
-    };
+    kind: 'PlainLine';
+    line: string;
+  };
 
 const lyricsPicker: LyricsRendererChild = { kind: 'LyricsPicker' };
 
 export const [currentTime, setCurrentTime] = createSignal<number>(-1);
-export const LyricsRenderer = () => {
+
+interface LyricsRendererProps {
+  container?: HTMLElement;
+}
+
+export const LyricsRenderer = (props: LyricsRendererProps) => {
   const [scroller, setScroller] = createSignal<VirtualizerHandle>();
   const [stickyRef, setStickRef] = createSignal<HTMLElement | null>(null);
 
-  const tab = document.querySelector<HTMLElement>(selectors.body.tabRenderer)!;
+  // Use provided container or fallback to global selector (original behavior)
+  const getContainer = () => props.container || document.querySelector<HTMLElement>(selectors.body.tabRenderer);
 
   let mouseCoord = 0;
   const mousemoveListener = (e: Event) => {
     if ('clientY' in e) {
       mouseCoord = (e as MouseEvent).clientY;
     }
+
+    const tab = getContainer();
+    if (!tab || !stickyRef()) return;
 
     const { top } = tab.getBoundingClientRect();
     const { clientHeight: height } = stickyRef()!;
@@ -174,7 +183,20 @@ export const LyricsRenderer = () => {
   };
 
   onMount(() => {
-    const vList = document.querySelector<HTMLElement>('.synced-lyrics-vlist');
+    const tab = getContainer();
+    if (!tab) return;
+
+    // If using a custom container, we might need to find the vList inside it or just use the container itself if it's the scroll target
+    // For now, let's assume the vList is still created by VList component and has the class
+    // But we need to wait for it to be mounted.
+
+    // In the original code, it queries .synced-lyrics-vlist globally. 
+    // If we have multiple instances, we should scope this query.
+    const findVList = () => props.container
+      ? props.container.querySelector<HTMLElement>('.synced-lyrics-vlist')
+      : document.querySelector<HTMLElement>('.synced-lyrics-vlist');
+
+    const vList = findVList();
 
     tab.addEventListener('mousemove', mousemoveListener);
     vList?.addEventListener('scroll', mousemoveListener);

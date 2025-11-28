@@ -21,6 +21,9 @@ window.ipcRenderer.on(
   'peard:update-song-info',
   (_, extractedSongInfo: SongInfo) => {
     songInfo = extractedSongInfo;
+    document.dispatchEvent(
+      new CustomEvent('peard:update-song-info', { detail: extractedSongInfo }),
+    );
   },
 );
 
@@ -165,7 +168,7 @@ export const setupFullScreenChangedListener = singleton(() => {
     window.ipcRenderer.send(
       'peard:fullscreen-changed',
       (playerBar?.attributes.getNamedItem('player-fullscreened') ?? null) !==
-        null,
+      null,
     );
   });
 
