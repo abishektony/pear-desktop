@@ -165,6 +165,7 @@ export class Miniplayer {
     private isFullscreenOpen = false;
 
     private boundHandleAudioCanPlay: (e: Event) => void;
+    private boundHandleResize: () => void;
 
     constructor(config?: any) {
         if (config) {
@@ -177,14 +178,51 @@ export class Miniplayer {
         this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
         document.addEventListener('peard:audio-can-play', this.boundHandleAudioCanPlay);
 
+        // Bind and add resize listener
+        this.boundHandleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.boundHandleResize);
+
+        // Try to connect to existing audio context if available
+        this.tryConnectExistingAudio();
+
         // Initial check
         this.checkWindowSize();
+    }
+
+    private tryConnectExistingAudio() {
+        // Try to get existing video element and connect to its audio
+        const video = document.querySelector('video');
+        if (!video) return;
+
+        try {
+            // Check if there's already an audio context
+            const existingContext = (window as any).__pearAudioContext;
+            const existingSource = (window as any).__pearAudioSource;
+
+            if (existingContext && existingSource) {
+                this.audioContext = existingContext;
+                this.analyser = this.audioContext.createAnalyser();
+                this.analyser.fftSize = 32;
+                existingSource.connect(this.analyser);
+                
+                const bufferLength = this.analyser.frequencyBinCount;
+                this.dataArray = new Uint8Array(bufferLength);
+                
+                console.log('[Miniplayer] Connected to existing audio context');
+            }
+        } catch (err) {
+            console.error('[Miniplayer] Failed to connect to existing audio:', err);
+        }
     }
 
     private handleAudioCanPlay(e: Event) {
         const event = e as CustomEvent;
         this.audioContext = event.detail.audioContext;
         const source = event.detail.audioSource;
+
+        // Store globally so re-enabled plugin can access it
+        (window as any).__pearAudioContext = this.audioContext;
+        (window as any).__pearAudioSource = source;
 
         if (this.audioContext && source) {
             try {
@@ -382,11 +420,12 @@ export class Miniplayer {
         this.fullscreenLyricsButton?.addEventListener('click', () => {
             this.toggleLyrics();
         });
+    }
 
-        window.addEventListener('resize', () => {
-            this.updateLyricsButtonVisibility();
-            this.updateFullscreenVisibility();
-        });
+    private handleResize() {
+        this.updateLyricsButtonVisibility();
+        this.updateFullscreenVisibility();
+        this.checkWindowSize();
     }
 
     private cycleMode() {
@@ -402,7 +441,7 @@ export class Miniplayer {
     }
 
     private checkWindowSize() {
-        const shouldBeActive = window.innerWidth <= 1080;
+        const shouldBeActive = window.innerWidth <= 2160;
 
         if (shouldBeActive !== this.isActive) {
             this.isActive = shouldBeActive;
@@ -1431,14 +1470,51 @@ export class Miniplayer {
         return this.element;
     }
 
-    destroy() {
+    async destroy() {
+        // Stop all tracking and intervals
         this.stopTracking();
         if (this.currentLyricUpdateInterval) {
             clearInterval(this.currentLyricUpdateInterval);
             this.currentLyricUpdateInterval = null;
         }
-        this.element.remove();
-        this.showYouTubeMiniplayer();
+
+        // Close fullscreen if open
+        if (this.isFullscreenOpen) {
+            this.closeFullscreen();
+        }
+
+        // Unmount lyrics if they're open
+        if (this.isLyricsOpen && this.fullscreenLyricsContent) {
+            try {
+                const { unmountLyrics } = await import('./lyrics-wrapper');
+                unmountLyrics();
+            } catch (error) {
+                console.error('[Miniplayer] Failed to unmount lyrics on destroy:', error);
+            }
+        }
+
+        // Disconnect audio analyser
+        if (this.analyser) {
+            try {
+                this.analyser.disconnect();
+            } catch (error) {
+                console.error('[Miniplayer] Failed to disconnect analyser:', error);
+            }
+            this.analyser = null;
+        }
+
+        // Clear audio context reference (don't close it as it's shared)
+        this.audioContext = null;
+        this.dataArray = null;
+
+        // Remove event listeners
         document.removeEventListener('peard:audio-can-play', this.boundHandleAudioCanPlay);
+        window.removeEventListener('resize', this.boundHandleResize);
+
+        // Remove element from DOM
+        this.element.remove();
+        
+        // Show YouTube miniplayer
+        this.showYouTubeMiniplayer();
     }
 }
