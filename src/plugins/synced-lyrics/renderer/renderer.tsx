@@ -297,7 +297,7 @@ export const LyricsRenderer = (props: LyricsRendererProps) => {
   });
 
   return (
-    <Show when={isVisible()}>
+    <Show when={props.container ? true : isVisible()}>
       <VList
         {...{
           ref: setScroller,

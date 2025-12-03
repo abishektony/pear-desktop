@@ -162,6 +162,7 @@ export class Miniplayer {
     private fullscreenCloseButton: HTMLButtonElement | null = null;
     private fullscreenVolumeButton: HTMLButtonElement | null = null;
     private fullscreenVolumeSlider: HTMLInputElement | null = null;
+    private fullscreenVolumeValue: HTMLElement | null = null;
     private isFullscreenOpen = false;
 
     private boundHandleAudioCanPlay: (e: Event) => void;
@@ -201,14 +202,16 @@ export class Miniplayer {
 
             if (existingContext && existingSource) {
                 this.audioContext = existingContext;
-                this.analyser = this.audioContext.createAnalyser();
-                this.analyser.fftSize = 32;
-                existingSource.connect(this.analyser);
-                
-                const bufferLength = this.analyser.frequencyBinCount;
-                this.dataArray = new Uint8Array(bufferLength);
-                
-                console.log('[Miniplayer] Connected to existing audio context');
+                if (this.audioContext) {
+                    this.analyser = this.audioContext.createAnalyser();
+                    this.analyser.fftSize = 32;
+                    existingSource.connect(this.analyser);
+
+                    const bufferLength = this.analyser.frequencyBinCount;
+                    this.dataArray = new Uint8Array(bufferLength);
+
+                    console.log('[Miniplayer] Connected to existing audio context');
+                }
             }
         } catch (err) {
             console.error('[Miniplayer] Failed to connect to existing audio:', err);
@@ -289,6 +292,7 @@ export class Miniplayer {
         this.fullscreenCloseButton = this.element.querySelector('#pear-fullscreen-close');
         this.fullscreenVolumeButton = this.element.querySelector('#pear-fullscreen-volume-btn');
         this.fullscreenVolumeSlider = this.element.querySelector('#pear-fullscreen-volume-slider');
+        this.fullscreenVolumeValue = this.element.querySelector('#pear-fullscreen-volume-value');
     }
 
     private setupEventListeners() {
@@ -408,6 +412,7 @@ export class Miniplayer {
                 video.volume = value / 100;
                 video.muted = false;
                 this.updateVolumeIcon();
+                this.updateVolumeValue();
             }
         });
 
@@ -917,11 +922,11 @@ export class Miniplayer {
         if (!video) return;
 
         const muteIcon = `
-    < svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2" stroke - linecap="round" stroke - linejoin="round" >
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-            <line x1="23" y1 = "9" x2 = "17" y2 = "15" />
-                <line x1="17" y1 = "9" x2 = "23" y2 = "15" />
-                    </svg>`;
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>`;
 
         const lowVolumeIcon = `
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -982,9 +987,19 @@ export class Miniplayer {
             }
 
             this.updateVolumeIcon();
+            this.updateVolumeValue();
         } catch (error) {
             console.error('[Miniplayer] Error updating fullscreen state:', error);
         }
+    }
+
+    private updateVolumeValue() {
+        if (!this.fullscreenVolumeValue) return;
+        const video = document.querySelector('video');
+        if (!video) return;
+
+        const volumePercent = Math.round(video.volume * 100);
+        this.fullscreenVolumeValue.textContent = `${volumePercent}%`;
     }
 
 
@@ -1008,10 +1023,10 @@ export class Miniplayer {
             }
 
             // Detect song change and refresh lyrics
-            const newTitle = this.titleElement?.textContent;
-            if (oldTitle && newTitle && oldTitle !== newTitle && this.isLyricsOpen) {
-                this.refreshLyricsOnSongChange();
-            }
+            // const newTitle = this.titleElement?.textContent;
+            // if (oldTitle && newTitle && oldTitle !== newTitle && this.isLyricsOpen) {
+            //     this.refreshLyricsOnSongChange();
+            // }
 
             // Set or clear thumbnail; verify image asynchronously to avoid channel avatar/placeholder
             if (this.thumbnailElement) {
@@ -1409,14 +1424,47 @@ export class Miniplayer {
         if (!this.isLyricsOpen || !this.fullscreenLyricsContent) return;
 
         try {
-            // Unmount and remount lyrics to refresh
             const { unmountLyrics, mountLyrics } = await import('./lyrics-wrapper');
+
+            // --- TEARDOWN (Mimic toggleLyrics else block) ---
+
+            // Stop updating current lyric
+            if (this.currentLyricUpdateInterval) {
+                clearInterval(this.currentLyricUpdateInterval);
+                this.currentLyricUpdateInterval = null;
+            }
+
             unmountLyrics();
 
-            // Small delay to ensure clean unmount
+            this.fullscreenLyricsPanel?.classList.remove('active');
+            this.fullscreenPlayer?.classList.remove('lyrics-open');
+            this.fullscreenLyricsButton?.classList.remove('active');
+
+            // Clear and hide compact lyrics box
+            if (this.fullscreenCurrentLyricText) {
+                this.fullscreenCurrentLyricText.innerHTML = '';
+            }
+            if (this.fullscreenCurrentLyric) {
+                this.fullscreenCurrentLyric.classList.remove('visible');
+            }
+            this.currentLyricText = '';
+
+            // --- RE-INIT (Mimic toggleLyrics if block) ---
+
+            // Small delay to ensure clean unmount and visual reset
             setTimeout(() => {
-                if (this.fullscreenLyricsContent) {
+                // Check if still open (user might have clicked button during delay)
+                if (this.isLyricsOpen && this.fullscreenLyricsContent) {
                     mountLyrics(this.fullscreenLyricsContent);
+
+                    this.fullscreenLyricsPanel?.classList.add('active');
+                    this.fullscreenPlayer?.classList.add('lyrics-open');
+                    this.fullscreenLyricsButton?.classList.add('active');
+
+                    // Start updating current lyric for bottom mode
+                    this.currentLyricUpdateInterval = window.setInterval(() => {
+                        this.updateCurrentLyric();
+                    }, 100);
                 }
             }, 100);
         } catch (error) {
@@ -1513,7 +1561,7 @@ export class Miniplayer {
 
         // Remove element from DOM
         this.element.remove();
-        
+
         // Show YouTube miniplayer
         this.showYouTubeMiniplayer();
     }

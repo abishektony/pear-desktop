@@ -1,11 +1,9 @@
 import { render } from 'solid-js/web';
 import { LyricsRenderer, setIsVisible } from '../synced-lyrics/renderer/renderer';
 import { CompactLyricsRenderer, getCurrentLyricText, currentLyricData } from '../synced-lyrics/renderer/compact-renderer';
-import { FullscreenLyricsRenderer } from '../synced-lyrics/renderer/fullscreen-renderer';
 
 let dispose: (() => void) | null = null;
 let compactDispose: (() => void) | null = null;
-let fullscreenDispose: (() => void) | null = null;
 
 // Mount the compact renderer immediately (it doesn't render UI, just tracks current lyric)
 // This ensures lyrics data is always available, even before the lyrics panel is opened
@@ -31,16 +29,6 @@ export function mountLyrics(container: HTMLElement) {
     ensureCompactRendererMounted();
 }
 
-export function mountFullscreenLyrics(container: HTMLElement) {
-    if (fullscreenDispose) fullscreenDispose();
-
-    setIsVisible(true);
-    fullscreenDispose = render(() => <FullscreenLyricsRenderer container={container} />, container);
-
-    // Ensure compact renderer is mounted
-    ensureCompactRendererMounted();
-}
-
 export function unmountLyrics() {
     if (dispose) {
         dispose();
@@ -50,13 +38,8 @@ export function unmountLyrics() {
     setIsVisible(false);
 }
 
-export function unmountFullscreenLyrics() {
-    if (fullscreenDispose) {
-        fullscreenDispose();
-        fullscreenDispose = null;
-    }
-    setIsVisible(false);
-}
+// Ensure compact renderer is mounted
+ensureCompactRendererMounted();
 
 // Export the current lyric data for external use
 export { getCurrentLyricText, currentLyricData };
