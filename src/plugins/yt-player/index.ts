@@ -73,6 +73,10 @@ export default createPlugin({
             // Dynamically import to avoid loading in main process
             const { Miniplayer } = await import('./miniplayer');
             this.miniplayer = new Miniplayer(config);
+            const playerApi = (document.querySelector('ytmusic-app-layout') as any)?.playerApi;
+            if (playerApi) {
+                this.miniplayer.setPlayerApi(playerApi);
+            }
             document.body.appendChild(this.miniplayer.getElement());
         },
 

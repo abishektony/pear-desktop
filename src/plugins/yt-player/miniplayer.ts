@@ -93,6 +93,16 @@ const miniplayerHTML = `
         <input type="range" class="pear-fullscreen-volume-slider" id="pear-fullscreen-volume-slider" min="0" max="100" value="100" title="Volume">
         <span class="pear-fullscreen-volume-value" id="pear-fullscreen-volume-value">100%</span>
         </div>
+        <button class="pear-fullscreen-btn queue-btn" id="pear-fullscreen-queue-btn" title="Toggle Queue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+        </button>
         <button class="pear-fullscreen-btn lyrics-btn" id="pear-fullscreen-lyrics-btn" title="Toggle Lyrics">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 18V5l12-2v13"/>
@@ -108,7 +118,17 @@ const miniplayerHTML = `
     </div>
       
     <div class="pear-fullscreen-lyrics-panel" id="pear-fullscreen-lyrics-panel">
+        <div class="pear-fullscreen-queue-header">
+            <h3>Lyrics</h3>
+        </div>
         <div class="pear-fullscreen-lyrics-content" id="pear-fullscreen-lyrics-content"></div>
+    </div>
+
+    <div class="pear-fullscreen-queue-panel" id="pear-fullscreen-queue-panel">
+        <div class="pear-fullscreen-queue-header">
+            <h3>Queue</h3>
+        </div>
+        <div class="pear-fullscreen-queue-content" id="pear-fullscreen-queue-content"></div>
     </div>
   </div>
 </div>
@@ -137,8 +157,13 @@ export class Miniplayer {
         clickToSwitch: true
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
+    private playerApi: any = null;
 
     // Fullscreen player elements
+    private fullscreenQueueButton: HTMLButtonElement | null = null;
+    private fullscreenQueuePanel: HTMLElement | null = null;
+    private fullscreenQueueContent: HTMLElement | null = null;
+    private isQueueOpen = false;
     private fullscreenLyricsButton: HTMLButtonElement | null = null;
     private fullscreenLyricsPanel: HTMLElement | null = null;
     private fullscreenLyricsContent: HTMLElement | null = null;
@@ -254,6 +279,11 @@ export class Miniplayer {
         }
     }
 
+
+    setPlayerApi(api: any) {
+        this.playerApi = api;
+    }
+
     private initElements() {
         console.log('[Miniplayer] this.element:', this.element);
         console.log('[Miniplayer] this.element.innerHTML:', this.element.innerHTML.substring(0, 200));
@@ -267,6 +297,9 @@ export class Miniplayer {
         this.seekProgress = this.element.querySelector('#pear-miniplayer-seek-progress');
         this.thumbnailElement = this.element.querySelector('#pear-miniplayer-thumb');
         this.canvas = this.element.querySelector('#pear-miniplayer-canvas');
+        this.fullscreenQueueButton = this.element.querySelector('#pear-fullscreen-queue-btn');
+        this.fullscreenQueuePanel = this.element.querySelector('#pear-fullscreen-queue-panel');
+        this.fullscreenQueueContent = this.element.querySelector('#pear-fullscreen-queue-content');
 
         // Fullscreen elements
         this.fullscreenPlayer = this.element.querySelector('#pear-fullscreen-player');
@@ -299,6 +332,10 @@ export class Miniplayer {
         this.playButton?.addEventListener('click', () => {
             const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
             playPauseButton?.click();
+        });
+
+        this.fullscreenQueueButton?.addEventListener('click', () => {
+            this.toggleQueue();
         });
 
         this.prevButton?.addEventListener('click', () => {
@@ -442,7 +479,7 @@ export class Miniplayer {
         const nextIndex = (currentIndex + 1) % modes.length;
         const oldMode = this.preferredMode;
         this.preferredMode = modes[nextIndex];
-        console.log(`[Miniplayer] Mode cycled from ${oldMode} to ${this.preferredMode}. Available modes:`, modes);
+        console.log(`[Miniplayer] Mode cycled from ${oldMode} to ${this.preferredMode}.Available modes: `, modes);
     }
 
     private checkWindowSize() {
@@ -464,6 +501,117 @@ export class Miniplayer {
         }
 
         this.updateSize();
+    }
+
+    private toggleQueue() {
+        if (!this.fullscreenQueuePanel || !this.fullscreenPlayer) return;
+
+        this.isQueueOpen = !this.isQueueOpen;
+
+        if (this.isQueueOpen) {
+            // ADD THIS BLOCK:
+            // If window is too small for both, close lyrics
+            if (window.innerWidth < 1200 && this.isLyricsOpen) {
+                this.toggleLyrics();
+            }
+            // END ADDITION
+
+            this.fullscreenQueuePanel.classList.add('active');
+            this.fullscreenPlayer.classList.add('queue-open');
+            this.fullscreenQueueButton?.classList.add('active');
+            this.renderQueue();
+        } else {
+            this.fullscreenQueuePanel.classList.remove('active');
+            this.fullscreenPlayer.classList.remove('queue-open');
+            this.fullscreenQueueButton?.classList.remove('active');
+        }
+    }
+
+    private renderQueue() {
+        if (!this.fullscreenQueueContent) return;
+        this.fullscreenQueueContent.innerHTML = '';
+
+        const queueItems = document.querySelectorAll('ytmusic-player-queue-item');
+        queueItems.forEach((item, index) => {
+            const title = item.querySelector('.song-title')?.textContent?.trim() || 'Unknown';
+            const artist = item.querySelector('.byline')?.textContent?.trim() || 'Unknown';
+            const duration = item.querySelector('.duration')?.textContent?.trim() || '';
+            const thumbImg = item.querySelector('img')?.src || '';
+            const isPlaying = item.hasAttribute('selected');
+
+            const div = document.createElement('div');
+            div.className = `pear-queue-item ${isPlaying ? 'playing' : ''}`;
+
+            div.innerHTML = `
+                <img src="${thumbImg}" class="pear-queue-item-thumb" />
+                <div class="pear-queue-item-info">
+                    <div class="pear-queue-item-title">${title}</div>
+                    <div class="pear-queue-item-artist">${artist}</div>
+                </div>
+                <div class="pear-queue-item-duration">${duration}</div>
+            `;
+
+            div.addEventListener('click', () => {
+                const currentQueueItems = document.querySelectorAll('ytmusic-player-queue-item');
+                const currentItem = currentQueueItems[index] as HTMLElement;
+
+                if (!currentItem) return;
+
+                if (this.playerApi) {
+                    const currentIndex = Array.from(currentQueueItems).findIndex(i => i.hasAttribute('selected'));
+                    if (currentIndex !== -1) {
+                        const relativeIndex = index - currentIndex;
+                        if (relativeIndex === 0) {
+                            this.playerApi.seekTo(0);
+                            this.playerApi.playVideo();
+                            return;
+                        }
+                        if (relativeIndex > 0) {
+                            for (let i = 0; i < relativeIndex; i++) {
+                                this.playerApi.nextVideo();
+                            }
+                            return;
+                        }
+                        if (relativeIndex < 0) {
+                            for (let i = 0; i < Math.abs(relativeIndex); i++) {
+                                this.playerApi.previousVideo();
+                            }
+                            return;
+                        }
+                    }
+                }
+
+                const playButton = currentItem.querySelector<HTMLElement>('ytmusic-play-button-renderer button');
+                if (playButton) {
+                    playButton.click();
+                    return;
+                }
+
+                const clickTargets = [
+                    '.song-title',
+                    'ytmusic-thumbnail-renderer',
+                    '.duration'
+                ];
+
+                let clicked = false;
+                for (const selector of clickTargets) {
+                    const target = currentItem.querySelector<HTMLElement>(selector);
+                    if (target) {
+                        target.click();
+                        clicked = true;
+                        break;
+                    }
+                }
+
+                if (!clicked) {
+                    currentItem.click();
+                    const evt = new MouseEvent('dblclick', { bubbles: true, cancelable: true });
+                    currentItem.dispatchEvent(evt);
+                }
+            });
+
+            this.fullscreenQueueContent!.appendChild(div);
+        });
     }
 
     private trackingInterval: number | null = null;
@@ -496,11 +644,8 @@ export class Miniplayer {
 
     private renderFrame() {
         const video = document.querySelector('video');
-
-        // Determine what to show based on preferredMode and availability
         let modeToShow = this.preferredMode;
 
-        // Fallback logic
         if (modeToShow === 'visualizer') {
             if (!this.config.visualizerEnabled || !this.analyser) {
                 modeToShow = 'video';
@@ -513,7 +658,6 @@ export class Miniplayer {
             }
         }
 
-        // Render based on determined mode
         if (modeToShow === 'visualizer' && this.analyser) {
             if (this.config.visualizerStyle === 'wave') {
                 this.drawWaveVisualizer();
@@ -562,7 +706,6 @@ export class Miniplayer {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Darken background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, width, height);
 
@@ -574,14 +717,10 @@ export class Miniplayer {
         ctx.shadowColor = '#1e90ff';
         ctx.lineWidth = 2;
 
-        // Draw concentric circles based on frequency data
         const circleCount = 5;
-        // Use lower frequencies which are usually more active (bass)
-        // We skip the very first bin (DC offset) and take a few steps
         const step = Math.floor((this.dataArray.length / 2) / circleCount);
 
         for (let i = 0; i < circleCount; i++) {
-            // Get average of a small range for smoother movement
             let sum = 0;
             const start = i * step;
             const count = 3;
@@ -591,14 +730,11 @@ export class Miniplayer {
             const value = sum / count;
             const intensity = value / 255;
 
-            // Base radius increases with index
-            // Dynamic component based on intensity
             const radius = ((i + 1) * (maxRadius / (circleCount + 1))) + (intensity * 8);
 
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
 
-            // Blue color with opacity based on intensity
             ctx.strokeStyle = `rgba(77, 166, 255, ${0.3 + intensity * 0.7})`;
             ctx.stroke();
         }
@@ -625,16 +761,13 @@ export class Miniplayer {
 
         ctx.clearRect(0, 0, width, height);
 
-        // Darken background for better visibility
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(0, 0, width, height);
 
-        // Draw bars
         const barWidth = (width / this.dataArray.length);
         let barHeight;
         let x = 0;
 
-        // Glow effect
         ctx.shadowBlur = 4;
         ctx.shadowColor = '#1e8fff9b';
         ctx.fillStyle = '#4da6ff9b';
@@ -642,14 +775,12 @@ export class Miniplayer {
         for (let i = 0; i < this.dataArray.length; i++) {
             barHeight = (this.dataArray[i] / 255) * height;
 
-            // Draw rounded bars if possible, else rects
             const w = Math.max(1, barWidth - 0.5);
             ctx.fillRect(x, height - barHeight, w, barHeight);
 
             x += barWidth;
         }
 
-        // Reset shadow
         ctx.shadowBlur = 0;
     }
 
@@ -659,7 +790,6 @@ export class Miniplayer {
         this.canvas.style.display = 'block';
         const ctx = this.canvas.getContext('2d');
         if (ctx) {
-            // Match the size of the thumbnail container
             const width = this.thumbnailElement.clientWidth;
             const height = this.thumbnailElement.clientHeight;
 
@@ -911,9 +1041,6 @@ export class Miniplayer {
         if (!this.fullscreenPlayer) return;
         this.isFullscreenOpen = false;
         this.fullscreenPlayer.classList.remove('active');
-        if (this.isLyricsOpen) {
-            this.toggleLyrics();
-        }
     }
 
     private updateVolumeIcon() {
@@ -922,11 +1049,11 @@ export class Miniplayer {
         if (!video) return;
 
         const muteIcon = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <line x1="23" y1="9" x2="17" y2="15"/>
-                <line x1="17" y1="9" x2="23" y2="15"/>
-            </svg>`;
+                < svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2" stroke - linecap="round" stroke - linejoin="round" >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <line x1="23" y1 = "9" x2 = "17" y2 = "15" />
+                            <line x1="17" y1 = "9" x2 = "23" y2 = "15" />
+                                </svg>`;
 
         const lowVolumeIcon = `
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1027,6 +1154,12 @@ export class Miniplayer {
             // if (oldTitle && newTitle && oldTitle !== newTitle && this.isLyricsOpen) {
             //     this.refreshLyricsOnSongChange();
             // }
+
+            // Refresh queue if open and song changed
+            const newTitle = this.titleElement?.textContent;
+            if (oldTitle && newTitle && oldTitle !== newTitle && this.isQueueOpen) {
+                this.renderQueue();
+            }
 
             // Set or clear thumbnail; verify image asynchronously to avoid channel avatar/placeholder
             if (this.thumbnailElement) {
@@ -1307,6 +1440,9 @@ export class Miniplayer {
                 this.currentLyricUpdateInterval = window.setInterval(() => {
                     this.updateCurrentLyric();
                 }, 100);
+                if (window.innerWidth < 1200 && this.isQueueOpen) {
+                    this.toggleQueue();
+                }
             } catch (error) {
                 console.error('[Miniplayer] Failed to load lyrics:', error);
                 this.isLyricsOpen = false;
@@ -1502,15 +1638,11 @@ export class Miniplayer {
             this.element.style.height = '80px';
             this.element.style.borderRadius = '25px';
             this.element.style.padding = '8px 12px';
-            // this.element.style.left = "50%";
-            // this.element.style.transform = "translateX(-50%)";
         } else {
             this.element.style.width = '500px';
             this.element.style.height = '80px';
             this.element.style.borderRadius = '25px';
             this.element.style.padding = '8px 12px';
-            // this.element.style.left = "50%";
-            // this.element.style.transform = "translateX(-50%)";
         }
     }
 
