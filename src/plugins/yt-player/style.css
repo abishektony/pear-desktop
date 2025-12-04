@@ -550,7 +550,7 @@
     text-align: right;
 }
 
-@media (max-height: 700px) and (max-width: 600px) {
+@media (max-height: 700px) or (max-width: 500px) {
     .pear-fullscreen-media {
         max-width: 250px;
         margin-bottom: 15px;
