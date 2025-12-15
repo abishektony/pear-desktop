@@ -7,7 +7,7 @@ export enum ProviderNames {
   LRCLib = 'LRCLib',
   MusixMatch = 'MusixMatch',
   LyricsGenius = 'LyricsGenius',
-  // Megalobiz = 'Megalobiz',
+  Megalobiz = 'Megalobiz',
 }
 
 export const ProviderNameSchema = z.enum(ProviderNames);
