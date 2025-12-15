@@ -1061,3 +1061,31 @@
         display: none;
     }
 }
+
+@media (min-width: 451px) {
+    .pear-miniplayer.dragging {
+        transition: none !important;
+        cursor: grabbing;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+    
+    .pear-miniplayer.active.dragging {
+        animation: none;
+    }
+    
+    .pear-miniplayer-info {
+        cursor: grab;
+    }
+    
+    .pear-miniplayer-info:active {
+        cursor: grabbing;
+    }
+
+    .pear-miniplayer.snapped {
+        border: 2px solid #1e90ff;
+        box-shadow: 0 0 20px rgba(30, 144, 255, 0.6);
+    }
+}

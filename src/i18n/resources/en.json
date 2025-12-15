@@ -654,6 +654,7 @@
         "visualizer-enabled": "Visualizer Enabled",
         "video-enabled": "Video Enabled",
         "click-to-switch": "Click to Switch Mode",
+        "draggable-enabled": "Draggable Miniplayer (>450px)",
         "visualizer-style": {
           "label": "Visualizer Style",
           "bars": "Bars",

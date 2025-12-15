@@ -13,6 +13,7 @@ export default createPlugin({
         visualizerStyle: 'bars', // 'bars' | 'wave'
         videoEnabled: true,
         clickToSwitch: true,
+        draggableEnabled: true,
     },
     stylesheets: [style],
     menu: async ({ getConfig, setConfig }) => {
@@ -61,6 +62,14 @@ export default createPlugin({
                 checked: config.clickToSwitch,
                 click(item) {
                     setConfig({ clickToSwitch: item.checked });
+                },
+            },
+            {
+                label: t('plugins.miniplayer.menu.draggable-enabled'),
+                type: 'checkbox',
+                checked: config.draggableEnabled,
+                click(item) {
+                    setConfig({ draggableEnabled: item.checked });
                 },
             },
         ];

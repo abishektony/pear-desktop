@@ -150,11 +150,13 @@ export class Miniplayer {
     private analyser: AnalyserNode | null = null;
     private dataArray: Uint8Array | null = null;
     private isActive = false;
-    private config: any = {
+    private config: {
+        enabled: false,
         visualizerEnabled: true,
         visualizerStyle: 'bars',
         videoEnabled: true,
-        clickToSwitch: true
+        clickToSwitch: true,
+        draggableEnabled: true,
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
     private playerApi: any = null;
@@ -197,16 +199,25 @@ export class Miniplayer {
         if (config) {
             this.config = { ...this.config, ...config };
         }
+        
+        // Bind methods FIRST so they are available for event listeners
+        this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
+        this.boundHandleResize = this.handleResize.bind(this);
+        this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+        this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+        this.boundHandleMouseUp = this.handleMouseUp.bind(this);
+
         this.element = ElementFromHtml(miniplayerHTML);
         this.initElements();
         this.setupEventListeners();
 
-        this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
         document.addEventListener('peard:audio-can-play', this.boundHandleAudioCanPlay);
 
         // Bind and add resize listener
-        this.boundHandleResize = this.handleResize.bind(this);
         window.addEventListener('resize', this.boundHandleResize);
+
+        // Load saved position
+        this.loadSavedPosition();
 
         // Try to connect to existing audio context if available
         this.tryConnectExistingAudio();
@@ -300,6 +311,7 @@ export class Miniplayer {
         this.fullscreenQueueButton = this.element.querySelector('#pear-fullscreen-queue-btn');
         this.fullscreenQueuePanel = this.element.querySelector('#pear-fullscreen-queue-panel');
         this.fullscreenQueueContent = this.element.querySelector('#pear-fullscreen-queue-content');
+        this.miniplayerElement = this.element.querySelector('#pear-miniplayer');
 
         // Fullscreen elements
         this.fullscreenPlayer = this.element.querySelector('#pear-fullscreen-player');
@@ -363,11 +375,19 @@ export class Miniplayer {
                 this.cycleMode();
             });
         }
-
-        // Open fullscreen when clicking on miniplayer (but not on thumbnail)
         const clickableArea = this.element.querySelector('#pear-miniplayer-clickable');
+        clickableArea?.addEventListener('mousedown', this.boundHandleMouseDown);
         clickableArea?.addEventListener('click', (e) => {
             console.log('[Miniplayer] Click detected on:', e.target);
+            
+            // Don't open if we just finished dragging
+            if (this.miniplayerElement?.classList.contains('just-dragged')) {
+                console.log('[Miniplayer] Click ignored - just dragged');
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            
             // Don't open if clicking on thumbnail or controls
             const target = e.target as HTMLElement;
             if (target.closest('#pear-miniplayer-thumb') ||
@@ -470,6 +490,190 @@ export class Miniplayer {
         this.checkWindowSize();
     }
 
+    private handleMouseDown(e: MouseEvent) {
+        // Only allow dragging on screens > 450px and if enabled
+        if (window.innerWidth <= 450 || !this.config.draggableEnabled) return;
+        
+        // Don't drag if clicking on controls or thumbnail
+        const target = e.target as HTMLElement;
+        if (target.closest('.pear-miniplayer-controls') || 
+            target.closest('#pear-miniplayer-thumb')) {
+            return;
+        }
+
+        // Store initial position but don't set isDragging yet
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+
+        if (this.miniplayerElement) {
+            const rect = this.miniplayerElement.getBoundingClientRect();
+            this.miniplayerStartX = rect.left;
+            this.miniplayerStartY = rect.top;
+        }
+
+        document.addEventListener('mousemove', this.boundHandleMouseMove);
+        document.addEventListener('mouseup', this.boundHandleMouseUp);
+        
+        // Prevent default to stop text selection
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    private handleMouseMove(e: MouseEvent) {
+        if (!this.miniplayerElement) return;
+
+        const deltaX = e.clientX - this.dragStartX;
+        const deltaY = e.clientY - this.dragStartY;
+
+        // Only start dragging if moved more than 5 pixels (drag threshold)
+        const dragThreshold = 5;
+        const hasMoved = Math.abs(deltaX) > dragThreshold || Math.abs(deltaY) > dragThreshold;
+
+        if (!this.isDragging && hasMoved) {
+            // User has moved enough to be considered dragging
+            this.isDragging = true;
+            this.miniplayerElement.style.userSelect = 'none';
+            this.miniplayerElement.classList.add('dragging');
+        }
+
+        if (!this.isDragging) return;
+
+        // Snap logic
+        const elementWidth = this.miniplayerElement.offsetWidth;
+        const elementHeight = this.miniplayerElement.offsetHeight;
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // Calculate center-bottom position (default)
+        const centerX = (windowWidth - elementWidth) / 2;
+        const bottomY = windowHeight - elementHeight;
+        
+        const snapThreshold = 50; // 50px snap zone
+        
+        let finalX = this.miniplayerStartX + deltaX;
+        let finalY = this.miniplayerStartY + deltaY;
+        let isSnapped = false;
+        
+        // Check if within snap zone
+        if (Math.abs(finalX - centerX) < snapThreshold && Math.abs(finalY - bottomY) < snapThreshold) {
+            isSnapped = true;
+            finalX = centerX;
+            finalY = bottomY;
+            this.miniplayerElement.classList.add('snapped');
+        } else {
+            this.miniplayerElement.classList.remove('snapped');
+        }
+
+        // Convert to percentages for responsive positioning
+        const percentX = (finalX / windowWidth) * 100;
+        const percentY = (finalY / windowHeight) * 100;
+
+        // Constrain to window bounds
+        const maxX = 100 - (elementWidth / windowWidth) * 100;
+        const maxY = 100 - (elementHeight / windowHeight) * 100;
+
+        const constrainedX = Math.max(0, Math.min(percentX, maxX));
+        const constrainedY = Math.max(0, Math.min(percentY, maxY));
+
+        this.miniplayerElement.style.setProperty('left', `${constrainedX}%`, 'important');
+        this.miniplayerElement.style.setProperty('top', `${constrainedY}%`, 'important');
+        this.miniplayerElement.style.setProperty('bottom', 'auto', 'important');
+        this.miniplayerElement.style.setProperty('transform', 'none', 'important');
+    }
+
+    private handleMouseUp() {
+        const wasDragging = this.isDragging;
+        
+        this.isDragging = false;
+        document.removeEventListener('mousemove', this.boundHandleMouseMove);
+        document.removeEventListener('mouseup', this.boundHandleMouseUp);
+
+        if (this.miniplayerElement) {
+            this.miniplayerElement.classList.remove('dragging');
+            // Restore text selection
+            this.miniplayerElement.style.userSelect = '';
+            
+            if (wasDragging) {
+                // Check if we dropped in the snap zone
+                if (this.miniplayerElement.classList.contains('snapped')) {
+                    this.resetPosition();
+                    this.savedPosition = null;
+                    localStorage.removeItem('pear-miniplayer-position');
+                    this.miniplayerElement.classList.remove('snapped');
+                } else {
+                    this.savePosition();
+                }
+
+                // User was dragging, save position and prevent click
+                this.miniplayerElement.classList.add('just-dragged');
+                // Use longer timeout (500ms) to ensure click event is blocked
+                setTimeout(() => {
+                    this.miniplayerElement?.classList.remove('just-dragged');
+                }, 500);
+            }
+        }
+    }
+
+    private savePosition() {
+        if (!this.miniplayerElement || window.innerWidth <= 450) return;
+
+        const rect = this.miniplayerElement.getBoundingClientRect();
+        const percentX = (rect.left / window.innerWidth) * 100;
+        const percentY = (rect.top / window.innerHeight) * 100;
+
+        this.savedPosition = { x: percentX, y: percentY };
+        
+        try {
+            localStorage.setItem('pear-miniplayer-position', JSON.stringify(this.savedPosition));
+        } catch (e) {
+            console.error('[Miniplayer] Failed to save position:', e);
+        }
+    }
+
+    private loadSavedPosition() {
+        if (window.innerWidth <= 450) return;
+
+        try {
+            const saved = localStorage.getItem('pear-miniplayer-position');
+            if (saved) {
+                this.savedPosition = JSON.parse(saved);
+            }
+        } catch (e) {
+            console.error('[Miniplayer] Failed to load position:', e);
+        }
+    }
+
+    private applyPosition() {
+        if (!this.miniplayerElement || window.innerWidth <= 450 || !this.savedPosition) return;
+
+        // Recalculate constraints based on current window size
+        const elementWidth = this.miniplayerElement.offsetWidth || 475; // Fallback width
+        const elementHeight = this.miniplayerElement.offsetHeight || 70; // Fallback height
+        
+        const maxX = 100 - (elementWidth / window.innerWidth) * 100;
+        const maxY = 100 - (elementHeight / window.innerHeight) * 100;
+
+        // Constrain the saved position
+        const constrainedX = Math.max(0, Math.min(this.savedPosition.x, maxX));
+        const constrainedY = Math.max(0, Math.min(this.savedPosition.y, maxY));
+
+        this.miniplayerElement.style.setProperty('left', `${constrainedX}%`, 'important');
+        this.miniplayerElement.style.setProperty('top', `${constrainedY}%`, 'important');
+        this.miniplayerElement.style.setProperty('bottom', 'auto', 'important');
+        this.miniplayerElement.style.setProperty('transform', 'none', 'important');
+        this.miniplayerElement.classList.add('dragging');
+    }
+
+    private resetPosition() {
+        if (!this.miniplayerElement) return;
+
+        this.miniplayerElement.style.removeProperty('left');
+        this.miniplayerElement.style.removeProperty('top');
+        this.miniplayerElement.style.removeProperty('bottom');
+        this.miniplayerElement.style.removeProperty('transform');
+        this.miniplayerElement.classList.remove('dragging');
+    }
+
     private cycleMode() {
         const modes: ('visualizer' | 'video' | 'thumbnail')[] = ['thumbnail'];
         if (this.config.videoEnabled) modes.unshift('video');
@@ -498,6 +702,11 @@ export class Miniplayer {
                 this.showYouTubeMiniplayer();
                 this.stopTracking();
             }
+        }
+        if (window.innerWidth > 450 && this.config.draggableEnabled) {
+            this.applyPosition();
+        } else {
+            this.resetPosition();
         }
 
         this.updateSize();
@@ -1019,6 +1228,9 @@ export class Miniplayer {
             console.error('[Miniplayer] fullscreenPlayer element not found!');
             return;
         }
+        if (window.innerWidth > 450 && this.miniplayerElement && this.config.draggableEnabled) {
+            this.savePosition();
+        }
         this.isFullscreenOpen = true;
         this.fullscreenPlayer.classList.add('active');
         console.log('[Miniplayer] Added active class to fullscreen player');
@@ -1041,6 +1253,9 @@ export class Miniplayer {
         if (!this.fullscreenPlayer) return;
         this.isFullscreenOpen = false;
         this.fullscreenPlayer.classList.remove('active');
+        if (window.innerWidth > 450 && this.config.draggableEnabled) {
+            setTimeout(() => this.applyPosition(), 100);
+        }
     }
 
     private updateVolumeIcon() {
