@@ -302,7 +302,7 @@
 .pear-fullscreen-media {
     width: 100%;
     max-width: 250px;
-    aspect-ratio: 1;
+    height: 250px;
     margin-bottom: 30px;
     display: flex;
     align-items: center;
@@ -310,6 +310,7 @@
     position: relative;
     z-index: 2;
     overflow: visible;
+    transition: width 0.3s ease-out, max-width 0.3s ease-out;
 }
 
 .pear-fullscreen-thumbnail {
@@ -553,6 +554,7 @@
 @media (max-height: 700px) or (max-width: 500px) {
     .pear-fullscreen-media {
         max-width: 250px;
+        height: 250px;
         margin-bottom: 15px;
     }
 
@@ -595,6 +597,7 @@
 
     .pear-fullscreen-media {
         max-width: 350px;
+        height: 350px;
         margin-bottom: 40px;
         margin-top: -40px;
         /* Move image up */
@@ -654,6 +657,7 @@
 @media (min-width: 1400px) {
     .pear-fullscreen-media {
         max-width: 400px;
+        height: 400px;
         margin-top: -60px;
         /* Move image even higher */
     }
@@ -977,7 +981,7 @@
 .pear-fullscreen-queue-header {
     padding: 20px;
     border-bottom: 1px solid rgba(30, 144, 255, 0.3);
-        padding-top: 50px;
+    padding-top: 50px;
 }
 
 .pear-fullscreen-queue-header h3 {
@@ -1056,6 +1060,7 @@
     .pear-fullscreen-queue-panel {
         display: none !important;
     }
+
     /* Hide queue button too? */
     #pear-fullscreen-queue-btn {
         display: none;
@@ -1071,15 +1076,15 @@
         -moz-user-select: none;
         -ms-user-select: none;
     }
-    
+
     .pear-miniplayer.active.dragging {
         animation: none;
     }
-    
+
     .pear-miniplayer-info {
         cursor: grab;
     }
-    
+
     .pear-miniplayer-info:active {
         cursor: grabbing;
     }
@@ -1087,5 +1092,116 @@
     .pear-miniplayer.snapped {
         border: 2px solid #1e90ff;
         box-shadow: 0 0 20px rgba(30, 144, 255, 0.6);
+    }
+}
+
+/* Video mode - only width changes, height stays constant */
+.pear-fullscreen-media.video-mode {
+    /* Extend wide but cap at 16:9 ratio based on height */
+    /* Base height is 250px, so max width = 250 * 16/9 ≈ 444px */
+    max-width: min(90vw, calc(250px * 16 / 9));
+    width: 100%;
+}
+
+/* Responsive breakpoints - cap width at 16:9 of the height */
+@media (min-width: 1400px) {
+    .pear-fullscreen-media.video-mode {
+        /* Height is 400px, so max width = 400 * 16/9 ≈ 711px */
+        max-width: min(90vw, calc(400px * 16 / 9));
+    }
+}
+
+@media (min-width: 1081px) and (max-width: 1399px) {
+    .pear-fullscreen-media.video-mode {
+        /* Height is 350px, so max width = 350 * 16/9 ≈ 622px */
+        max-width: min(90vw, calc(350px * 16 / 9));
+    }
+}
+
+@media (min-width: 800px) and (max-width: 1080px) {
+    .pear-fullscreen-media.video-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
+    }
+}
+
+@media (max-width: 799px) {
+    .pear-fullscreen-media.video-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
+    }
+}
+
+/* Visualizer mode - same behavior as video mode */
+.pear-fullscreen-media.visualizer-mode {
+    /* Extend wide but cap at 16:9 ratio based on height */
+    /* Base height is 250px, so max width = 250 * 16/9 ≈ 444px */
+    max-width: min(90vw, calc(250px * 16 / 9));
+    width: 100%;
+}
+
+/* Responsive breakpoints for visualizer mode */
+@media (min-width: 1400px) {
+    .pear-fullscreen-media.visualizer-mode {
+        /* Height is 400px, so max width = 400 * 16/9 ≈ 711px */
+        max-width: min(90vw, calc(400px * 16 / 9));
+    }
+}
+
+@media (min-width: 1081px) and (max-width: 1399px) {
+    .pear-fullscreen-media.visualizer-mode {
+        /* Height is 350px, so max width = 350 * 16/9 ≈ 622px */
+        max-width: min(90vw, calc(350px * 16 / 9));
+    }
+}
+
+@media (min-width: 800px) and (max-width: 1080px) {
+    .pear-fullscreen-media.visualizer-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
+    }
+}
+
+@media (max-width: 799px) {
+    .pear-fullscreen-media.visualizer-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
+    }
+}
+
+/* Thumbnail mode - same behavior as video/visualizer mode */
+.pear-fullscreen-media.thumbnail-mode {
+    /* Extend wide but cap at 16:9 ratio based on height */
+    /* Base height is 250px, so max width = 250 * 16/9 ≈ 444px */
+    max-width: min(90vw, calc(250px * 16 / 9));
+    width: 100%;
+}
+
+/* Responsive breakpoints for thumbnail mode */
+@media (min-width: 1400px) {
+    .pear-fullscreen-media.thumbnail-mode {
+        /* Height is 400px, so max width = 400 * 16/9 ≈ 711px */
+        max-width: min(90vw, calc(400px * 16 / 9));
+    }
+}
+
+@media (min-width: 1081px) and (max-width: 1399px) {
+    .pear-fullscreen-media.thumbnail-mode {
+        /* Height is 350px, so max width = 350 * 16/9 ≈ 622px */
+        max-width: min(90vw, calc(350px * 16 / 9));
+    }
+}
+
+@media (min-width: 800px) and (max-width: 1080px) {
+    .pear-fullscreen-media.thumbnail-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
+    }
+}
+
+@media (max-width: 799px) {
+    .pear-fullscreen-media.thumbnail-mode {
+        /* Height is 250px, so max width = 250 * 16/9 ≈ 444px */
+        max-width: min(90vw, calc(250px * 16 / 9));
     }
 }

@@ -8,6 +8,8 @@ export enum ProviderNames {
   MusixMatch = 'MusixMatch',
   LyricsGenius = 'LyricsGenius',
   Megalobiz = 'Megalobiz',
+  Textyl = 'Textyl',
+  Spotify = 'Spotify',
 }
 
 export const ProviderNameSchema = z.enum(ProviderNames);

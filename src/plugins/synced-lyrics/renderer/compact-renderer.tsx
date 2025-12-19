@@ -115,7 +115,13 @@ export function CompactLyricsRenderer() {
 export function getCurrentLyricText(includeRomanization: boolean = true): string {
     const data = currentLyricData();
 
-    if (!data.hasLyrics || !data.text) {
+    // If no lyrics are available at all, return music symbol
+    if (!data.hasLyrics) {
+        return '♪';
+    }
+
+    // If we have lyrics but no current text (shouldn't happen, but handle it)
+    if (!data.text) {
         return '';
     }
 

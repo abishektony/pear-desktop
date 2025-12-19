@@ -655,6 +655,7 @@
         "video-enabled": "Video Enabled",
         "click-to-switch": "Click to Switch Mode",
         "draggable-enabled": "Draggable Miniplayer (>450px)",
+        "widescreen-mode": "Widescreen Mode (Fullscreen)",
         "visualizer-style": {
           "label": "Visualizer Style",
           "bars": "Bars",

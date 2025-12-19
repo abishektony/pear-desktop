@@ -14,6 +14,7 @@ export default createPlugin({
         videoEnabled: true,
         clickToSwitch: true,
         draggableEnabled: true,
+        widescreenMode: true,
     },
     stylesheets: [style],
     menu: async ({ getConfig, setConfig }) => {
@@ -70,6 +71,14 @@ export default createPlugin({
                 checked: config.draggableEnabled,
                 click(item) {
                     setConfig({ draggableEnabled: item.checked });
+                },
+            },
+            {
+                label: t('plugins.miniplayer.menu.widescreen-mode'),
+                type: 'checkbox',
+                checked: config.widescreenMode,
+                click(item) {
+                    setConfig({ widescreenMode: item.checked });
                 },
             },
         ];

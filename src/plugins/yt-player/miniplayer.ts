@@ -157,6 +157,7 @@ export class Miniplayer {
         videoEnabled: true,
         clickToSwitch: true,
         draggableEnabled: true,
+        widescreenMode: true,
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
     private playerApi: any = null;
@@ -199,7 +200,7 @@ export class Miniplayer {
         if (config) {
             this.config = { ...this.config, ...config };
         }
-        
+
         // Bind methods FIRST so they are available for event listeners
         this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
         this.boundHandleResize = this.handleResize.bind(this);
@@ -379,7 +380,7 @@ export class Miniplayer {
         clickableArea?.addEventListener('mousedown', this.boundHandleMouseDown);
         clickableArea?.addEventListener('click', (e) => {
             console.log('[Miniplayer] Click detected on:', e.target);
-            
+
             // Don't open if we just finished dragging
             if (this.miniplayerElement?.classList.contains('just-dragged')) {
                 console.log('[Miniplayer] Click ignored - just dragged');
@@ -387,7 +388,7 @@ export class Miniplayer {
                 e.stopPropagation();
                 return;
             }
-            
+
             // Don't open if clicking on thumbnail or controls
             const target = e.target as HTMLElement;
             if (target.closest('#pear-miniplayer-thumb') ||
@@ -493,10 +494,10 @@ export class Miniplayer {
     private handleMouseDown(e: MouseEvent) {
         // Only allow dragging on screens > 450px and if enabled
         if (window.innerWidth <= 450 || !this.config.draggableEnabled) return;
-        
+
         // Don't drag if clicking on controls or thumbnail
         const target = e.target as HTMLElement;
-        if (target.closest('.pear-miniplayer-controls') || 
+        if (target.closest('.pear-miniplayer-controls') ||
             target.closest('#pear-miniplayer-thumb')) {
             return;
         }
@@ -513,7 +514,7 @@ export class Miniplayer {
 
         document.addEventListener('mousemove', this.boundHandleMouseMove);
         document.addEventListener('mouseup', this.boundHandleMouseUp);
-        
+
         // Prevent default to stop text selection
         e.preventDefault();
         e.stopPropagation();
@@ -543,17 +544,17 @@ export class Miniplayer {
         const elementHeight = this.miniplayerElement.offsetHeight;
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
-        
+
         // Calculate center-bottom position (default)
         const centerX = (windowWidth - elementWidth) / 2;
         const bottomY = windowHeight - elementHeight;
-        
+
         const snapThreshold = 50; // 50px snap zone
-        
+
         let finalX = this.miniplayerStartX + deltaX;
         let finalY = this.miniplayerStartY + deltaY;
         let isSnapped = false;
-        
+
         // Check if within snap zone
         if (Math.abs(finalX - centerX) < snapThreshold && Math.abs(finalY - bottomY) < snapThreshold) {
             isSnapped = true;
@@ -583,7 +584,7 @@ export class Miniplayer {
 
     private handleMouseUp() {
         const wasDragging = this.isDragging;
-        
+
         this.isDragging = false;
         document.removeEventListener('mousemove', this.boundHandleMouseMove);
         document.removeEventListener('mouseup', this.boundHandleMouseUp);
@@ -592,7 +593,7 @@ export class Miniplayer {
             this.miniplayerElement.classList.remove('dragging');
             // Restore text selection
             this.miniplayerElement.style.userSelect = '';
-            
+
             if (wasDragging) {
                 // Check if we dropped in the snap zone
                 if (this.miniplayerElement.classList.contains('snapped')) {
@@ -622,7 +623,7 @@ export class Miniplayer {
         const percentY = (rect.top / window.innerHeight) * 100;
 
         this.savedPosition = { x: percentX, y: percentY };
-        
+
         try {
             localStorage.setItem('pear-miniplayer-position', JSON.stringify(this.savedPosition));
         } catch (e) {
@@ -649,7 +650,7 @@ export class Miniplayer {
         // Recalculate constraints based on current window size
         const elementWidth = this.miniplayerElement.offsetWidth || 475; // Fallback width
         const elementHeight = this.miniplayerElement.offsetHeight || 70; // Fallback height
-        
+
         const maxX = 100 - (elementWidth / window.innerWidth) * 100;
         const maxY = 100 - (elementHeight / window.innerHeight) * 100;
 
@@ -1024,6 +1025,15 @@ export class Miniplayer {
         this.fullscreenCanvas.style.display = 'block';
         const ctx = this.fullscreenCanvas.getContext('2d');
         if (!ctx) return;
+        const container = this.fullscreenThumbnailElement.parentElement;
+        if (container) {
+            container.classList.remove('video-mode');
+            if (this.config.widescreenMode) {
+                container.classList.add('visualizer-mode');
+            } else {
+                container.classList.remove('visualizer-mode');
+            }
+        }
 
         const width = this.fullscreenThumbnailElement.clientWidth;
         const height = this.fullscreenThumbnailElement.clientHeight;
@@ -1080,6 +1090,15 @@ export class Miniplayer {
         this.fullscreenCanvas.style.display = 'block';
         const ctx = this.fullscreenCanvas.getContext('2d');
         if (!ctx) return;
+        const container = this.fullscreenThumbnailElement.parentElement;
+        if (container) {
+            container.classList.remove('video-mode');
+            if (this.config.widescreenMode) {
+                container.classList.add('visualizer-mode');
+            } else {
+                container.classList.remove('visualizer-mode');
+            }
+        }
 
         const width = this.fullscreenThumbnailElement.clientWidth;
         const height = this.fullscreenThumbnailElement.clientHeight;
@@ -1125,6 +1144,16 @@ export class Miniplayer {
         this.fullscreenCanvas.style.display = 'block';
         const ctx = this.fullscreenCanvas.getContext('2d');
         if (ctx) {
+            const container = this.fullscreenThumbnailElement.parentElement;
+            if (container) {
+                if (this.config.widescreenMode) {
+                    container.classList.add('video-mode');
+                } else {
+                    container.classList.remove('video-mode');
+                }
+                container.classList.remove('visualizer-mode');
+            }
+
             const width = this.fullscreenThumbnailElement.clientWidth;
             const height = this.fullscreenThumbnailElement.clientHeight;
 
@@ -1140,8 +1169,19 @@ export class Miniplayer {
     private clearCanvasFullscreen() {
         if (this.fullscreenCanvas) {
             this.fullscreenCanvas.style.display = 'none';
+            const container = this.fullscreenCanvas.parentElement?.parentElement;
+            if (container) {
+                container.classList.remove('video-mode');
+                container.classList.remove('visualizer-mode');
+                if (this.config.widescreenMode) {
+                    container.classList.add('thumbnail-mode');
+                } else {
+                    container.classList.remove('thumbnail-mode');
+                }
+            }
         }
     }
+
     // Draw cloud-like wave visualizer behind the image
     private drawVisualizerBackground() {
         if (!this.fullscreenVisualizerBgCanvas || !this.analyser || !this.dataArray) return;
@@ -1727,10 +1767,6 @@ export class Miniplayer {
                     const lines = lyricText.split('\n');
 
                     lines.forEach((line, lineIndex) => {
-                        if (lineIndex > 0) {
-                            // Add line break between original and romanization
-                            this.fullscreenCurrentLyricText!.appendChild(document.createElement('br'));
-                        }
 
                         // Split line into words and wrap each in a span for wave animation
                         const words = line.split(' ');
