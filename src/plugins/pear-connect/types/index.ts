@@ -15,6 +15,8 @@ export interface ClientPermissions {
   queue: boolean;
 }
 
+export type PlaybackTarget = 'laptop' | 'phone' | 'both';
+
 export interface PlaybackState {
   isPlaying: boolean;
   currentTime: number;
@@ -23,6 +25,7 @@ export interface PlaybackState {
   trackInfo?: TrackInfo;
   queuePosition: number;
   queueLength: number;
+  playbackTarget?: PlaybackTarget;
 }
 
 export interface TrackInfo {
@@ -50,7 +53,7 @@ export enum MessageType {
   AUTH_RESPONSE = 'AUTH_RESPONSE',
   AUTH_SUCCESS = 'AUTH_SUCCESS',
   AUTH_FAILED = 'AUTH_FAILED',
-  
+
   // Playback Control
   PLAY = 'PLAY',
   PAUSE = 'PAUSE',
@@ -58,25 +61,35 @@ export enum MessageType {
   PREVIOUS = 'PREVIOUS',
   SEEK = 'SEEK',
   SET_VOLUME = 'SET_VOLUME',
-  
+  SET_PLAYBACK_TARGET = 'SET_PLAYBACK_TARGET',
+
   // State Sync
   STATE_SYNC = 'STATE_SYNC',
   STATE_UPDATE = 'STATE_UPDATE',
-  
+
   // Queue/Playlist
   GET_QUEUE = 'GET_QUEUE',
   QUEUE_UPDATE = 'QUEUE_UPDATE',
   ADD_TO_QUEUE = 'ADD_TO_QUEUE',
   REMOVE_FROM_QUEUE = 'REMOVE_FROM_QUEUE',
   PLAY_QUEUE_ITEM = 'PLAY_QUEUE_ITEM',
-  
+
   // Discovery
   DEVICE_INFO = 'DEVICE_INFO',
   PING = 'PING',
   PONG = 'PONG',
-  
+
   // Error
   ERROR = 'ERROR',
+
+  // WebRTC Signaling for Audio Streaming
+  RTC_OFFER = 'RTC_OFFER',
+  RTC_ANSWER = 'RTC_ANSWER',
+  RTC_ICE_CANDIDATE = 'RTC_ICE_CANDIDATE',
+
+  // Lyrics
+  LYRICS_UPDATE = 'LYRICS_UPDATE',
+  GET_LYRICS = 'GET_LYRICS',
 }
 
 export interface WebSocketMessage<T = unknown> {

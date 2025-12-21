@@ -1120,3 +1120,66 @@
 #pear-connect-sidebar-item:hover .title {
   color: #1e90ff !important;
 }
+
+/* Playback Target Selection Styles */
+.pear-connect-playback-target {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.pear-connect-target-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border: 2px solid rgba(30, 144, 255, 0.3);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(77, 166, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 80px;
+}
+
+.pear-connect-target-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.pear-connect-target-btn:hover {
+  border-color: rgba(30, 144, 255, 0.6);
+  background: rgba(30, 144, 255, 0.1);
+  color: #4da6ff;
+}
+
+.pear-connect-target-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.pear-connect-target-btn.active {
+  border-color: #1e90ff;
+  background: linear-gradient(135deg, rgba(30, 144, 255, 0.2) 0%, rgba(30, 144, 255, 0.1) 100%);
+  color: #1e90ff;
+  box-shadow: 0 0 20px rgba(30, 144, 255, 0.3), inset 0 0 20px rgba(30, 144, 255, 0.1);
+}
+
+.pear-connect-target-btn.active svg {
+  filter: drop-shadow(0 0 4px rgba(30, 144, 255, 0.6));
+}
+
+.pear-connect-target-btn span {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pear-connect-target-hint {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(77, 166, 255, 0.6);
+  margin-top: 4px;
+}

@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { ElementFromHtml } from '@/plugins/utils/renderer';
 import managerHTML from './manager.html?raw';
-import type { RemoteClient } from '../types';
+import type { RemoteClient, PlaybackTarget } from '../types';
 import type { RendererContext } from '@/types/contexts';
 
 export class PearConnectUIManager {
@@ -16,12 +16,17 @@ export class PearConnectUIManager {
   private deviceCountElement: HTMLElement | null = null;
   private updateInterval: number | null = null;
   private copyButtonElement: HTMLButtonElement | null = null;
+  private playbackTargetContainer: HTMLElement | null = null;
+  private playbackTargetHint: HTMLElement | null = null;
+  private currentPlaybackTarget: PlaybackTarget = 'laptop';
 
   constructor(ipc: RendererContext<never>['ipc']) {
     this.ipc = ipc;
     this.element = ElementFromHtml(managerHTML);
     this.initElements();
     this.setupCopyButton();
+    this.setupPlaybackTargetButtons();
+    this.loadCurrentPlaybackTarget();
     this.startUpdating();
   }
 
@@ -34,6 +39,8 @@ export class PearConnectUIManager {
     this.devicesElement = this.element.querySelector('#pear-connect-devices');
     this.deviceCountElement = this.element.querySelector('#pear-connect-device-count');
     this.copyButtonElement = this.element.querySelector('#pear-connect-copy-btn');
+    this.playbackTargetContainer = this.element.querySelector('#pear-connect-playback-target');
+    this.playbackTargetHint = this.element.querySelector('#pear-connect-target-hint');
   }
 
   private setupCopyButton() {
@@ -57,6 +64,61 @@ export class PearConnectUIManager {
     }
   }
 
+  private async loadCurrentPlaybackTarget() {
+    try {
+      const target = await this.ipc.invoke('pear-connect:get-playback-target') as PlaybackTarget;
+      if (target) {
+        this.currentPlaybackTarget = target;
+        this.updatePlaybackTargetUI(target);
+      }
+    } catch (error) {
+      // Silent fail - use default
+    }
+  }
+
+  private setupPlaybackTargetButtons() {
+    if (!this.playbackTargetContainer) return;
+
+    const buttons = this.playbackTargetContainer.querySelectorAll('.pear-connect-target-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = (e.currentTarget as HTMLElement).getAttribute('data-target') as PlaybackTarget;
+        if (target) {
+          await this.setPlaybackTarget(target);
+        }
+      });
+    });
+  }
+
+  private async setPlaybackTarget(target: PlaybackTarget) {
+    try {
+      await this.ipc.invoke('pear-connect:set-playback-target', target);
+      this.currentPlaybackTarget = target;
+      this.updatePlaybackTargetUI(target);
+    } catch (error) {
+      // Silent fail
+    }
+  }
+
+  private updatePlaybackTargetUI(target: PlaybackTarget) {
+    if (!this.playbackTargetContainer || !this.playbackTargetHint) return;
+
+    // Update button states
+    const buttons = this.playbackTargetContainer.querySelectorAll('.pear-connect-target-btn');
+    buttons.forEach(btn => {
+      const btnTarget = btn.getAttribute('data-target');
+      btn.classList.toggle('active', btnTarget === target);
+    });
+
+    // Update hint text
+    const hints: Record<PlaybackTarget, string> = {
+      laptop: 'Music plays on your laptop only',
+      phone: 'Music plays on your phone only',
+      both: 'Music plays on both devices simultaneously',
+    };
+    this.playbackTargetHint.textContent = hints[target];
+  }
+
   private async startUpdating() {
     await this.update();
     this.updateInterval = window.setInterval(() => {
@@ -69,7 +131,7 @@ export class PearConnectUIManager {
       // Get server info from backend
       const serverInfo = await this.ipc.invoke('pear-connect:get-server-info') as { port: number; ip: string } | null;
       if (!serverInfo) return;
-      
+
       const { port, ip: localIP } = serverInfo;
       let url = `http://${localIP}:${port}`;
 
@@ -89,7 +151,7 @@ export class PearConnectUIManager {
         if (this.pairingCodeElement) {
           this.pairingCodeElement.textContent = pairing.code;
         }
-        
+
         // Add code to URL for QR code
         url = `${url}?code=${pairing.code}`;
 
@@ -190,7 +252,7 @@ export class PearConnectUIManager {
 
   private getTimeAgo(timestamp: number): string {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    
+
     if (seconds < 60) return 'just now';
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;

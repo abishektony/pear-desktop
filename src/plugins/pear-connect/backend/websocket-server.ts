@@ -10,6 +10,7 @@ import type {
   AuthRequest,
   PlaybackState,
   QueueItem,
+  PlaybackTarget,
 } from '../types';
 import type { PearConnectConfig } from '../config';
 
@@ -24,6 +25,10 @@ export class PearWebSocketServer {
   private onVolumeControl?: (volume: number) => void;
   private onSeek?: (time: number) => void;
   private onPlayQueueItem?: (index: number) => void;
+  private onRTCOffer?: (clientId: string, offer: unknown) => void;
+  private onRTCAnswer?: (clientId: string, answer: unknown) => void;
+  private onRTCIceCandidate?: (clientId: string, candidate: unknown) => void;
+  private onGetLyrics?: (clientId: string) => void;
 
   constructor(config: PearConnectConfig) {
     this.config = config;
@@ -36,11 +41,19 @@ export class PearWebSocketServer {
     onVolumeControl?: (volume: number) => void;
     onSeek?: (time: number) => void;
     onPlayQueueItem?: (index: number) => void;
+    onRTCOffer?: (clientId: string, offer: unknown) => void;
+    onRTCAnswer?: (clientId: string, answer: unknown) => void;
+    onRTCIceCandidate?: (clientId: string, candidate: unknown) => void;
+    onGetLyrics?: (clientId: string) => void;
   }) {
     this.onPlaybackControl = callbacks.onPlaybackControl;
     this.onVolumeControl = callbacks.onVolumeControl;
     this.onSeek = callbacks.onSeek;
     this.onPlayQueueItem = callbacks.onPlayQueueItem;
+    this.onRTCOffer = callbacks.onRTCOffer;
+    this.onRTCAnswer = callbacks.onRTCAnswer;
+    this.onRTCIceCandidate = callbacks.onRTCIceCandidate;
+    this.onGetLyrics = callbacks.onGetLyrics;
   }
 
   start(server: Server) {
@@ -143,6 +156,23 @@ export class PearWebSocketServer {
           });
           break;
 
+        // WebRTC Signaling
+        case 'RTC_OFFER':
+          this.handleRTCOffer(clientId, message.payload);
+          break;
+
+        case 'RTC_ANSWER':
+          this.handleRTCAnswer(clientId, message.payload);
+          break;
+
+        case 'RTC_ICE_CANDIDATE':
+          this.handleRTCIceCandidate(clientId, message.payload);
+          break;
+
+        case 'GET_LYRICS':
+          this.handleGetLyrics(clientId);
+          break;
+
         default:
           // Unknown message type
           break;
@@ -176,15 +206,15 @@ export class PearWebSocketServer {
       }
     } else if (authRequest.pairingCode) {
       // Verify pairing code (check both current code and pending)
-      const isCurrentCode = this.currentPairingCode && 
-                           this.currentPairingCode.code === authRequest.pairingCode &&
-                           this.currentPairingCode.expiresAt > Date.now();
-      
+      const isCurrentCode = this.currentPairingCode &&
+        this.currentPairingCode.code === authRequest.pairingCode &&
+        this.currentPairingCode.expiresAt > Date.now();
+
       const pending = this.pendingAuth.get(clientId);
-      const isPendingCode = pending && 
-                           pending.code === authRequest.pairingCode && 
-                           pending.expiresAt > Date.now();
-      
+      const isPendingCode = pending &&
+        pending.code === authRequest.pairingCode &&
+        pending.expiresAt > Date.now();
+
       if (isCurrentCode || isPendingCode) {
         // Generate JWT token
         const token = jwt.sign(
@@ -199,7 +229,7 @@ export class PearWebSocketServer {
 
         this.pendingAuth.delete(clientId);
         this.authenticateClient(clientId, ws, authRequest);
-        
+
         // Regenerate code if it was the current one to ensure one-time use
         if (isCurrentCode) {
           this.generateNewPairingCode();
@@ -296,7 +326,7 @@ export class PearWebSocketServer {
       this.sendError(clientData.ws, 'No playback permission');
       return;
     }
-    
+
     // Send to backend/renderer via callback
     if (this.onPlaybackControl) {
       this.onPlaybackControl(action);
@@ -311,7 +341,7 @@ export class PearWebSocketServer {
       this.sendError(clientData.ws, 'No playback permission');
       return;
     }
-    
+
     // Send to backend/renderer via callback
     if (this.onSeek) {
       this.onSeek(time);
@@ -326,7 +356,7 @@ export class PearWebSocketServer {
       this.sendError(clientData.ws, 'No volume permission');
       return;
     }
-    
+
     // Send to backend/renderer via callback
     if (this.onVolumeControl) {
       this.onVolumeControl(volume);
@@ -360,7 +390,7 @@ export class PearWebSocketServer {
       this.sendError(clientData.ws, 'No playback permission');
       return;
     }
-    
+
     if (this.onPlayQueueItem) {
       this.onPlayQueueItem(index);
     }
@@ -372,6 +402,68 @@ export class PearWebSocketServer {
       this.clients.delete(clientId);
     }
     this.pendingAuth.delete(clientId);
+  }
+
+  // WebRTC Signaling Handlers
+  private handleRTCOffer(clientId: string, offer: unknown) {
+    if (this.onRTCOffer) {
+      this.onRTCOffer(clientId, offer);
+    }
+  }
+
+  private handleRTCAnswer(clientId: string, answer: unknown) {
+    if (this.onRTCAnswer) {
+      this.onRTCAnswer(clientId, answer);
+    }
+  }
+
+  private handleRTCIceCandidate(clientId: string, candidate: unknown) {
+    if (this.onRTCIceCandidate) {
+      this.onRTCIceCandidate(clientId, candidate);
+    }
+  }
+
+  private handleGetLyrics(clientId: string) {
+    if (this.onGetLyrics) {
+      this.onGetLyrics(clientId);
+    }
+  }
+
+  // Send RTC answer to specific client
+  sendRTCAnswer(clientId: string, answer: unknown) {
+    const clientData = this.clients.get(clientId);
+    if (clientData) {
+      this.sendMessage(clientData.ws, {
+        type: 'RTC_ANSWER' as MessageType,
+        payload: answer,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // Send ICE candidate to specific client
+  sendRTCIceCandidate(clientId: string, candidate: unknown) {
+    const clientData = this.clients.get(clientId);
+    if (clientData) {
+      this.sendMessage(clientData.ws, {
+        type: 'RTC_ICE_CANDIDATE' as MessageType,
+        payload: candidate,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  // Broadcast lyrics to all clients
+  broadcastLyrics(lyrics: unknown) {
+    this.clients.forEach(({ ws, client }) => {
+      if (client.authenticated) {
+        this.sendMessage(ws, {
+          type: 'LYRICS_UPDATE' as MessageType,
+          payload: lyrics,
+          timestamp: Date.now(),
+        });
+      }
+    });
   }
 
   broadcastState(state: PlaybackState) {
@@ -391,12 +483,24 @@ export class PearWebSocketServer {
   broadcastQueue(queue: QueueItem[]) {
     // Store the queue for new clients
     this.lastQueue = queue;
-    
+
     this.clients.forEach(({ ws, client }) => {
       if (client.authenticated && client.permissions.queue) {
         this.sendMessage(ws, {
           type: 'QUEUE_UPDATE' as MessageType,
           payload: queue,
+          timestamp: Date.now(),
+        });
+      }
+    });
+  }
+
+  broadcastPlaybackTarget(target: PlaybackTarget) {
+    this.clients.forEach(({ ws, client }) => {
+      if (client.authenticated) {
+        this.sendMessage(ws, {
+          type: 'SET_PLAYBACK_TARGET' as MessageType,
+          payload: target,
           timestamp: Date.now(),
         });
       }
@@ -430,7 +534,7 @@ export class PearWebSocketServer {
     const code = this.generatePairingCode();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
     this.currentPairingCode = { code, expiresAt };
-    
+
     // Auto-refresh after expiration
     setTimeout(() => {
       this.generateNewPairingCode();
@@ -442,7 +546,7 @@ export class PearWebSocketServer {
   }
 
   getPendingPairings(): Array<{ clientId: string; code: string; expiresAt: number }> {
-    
+
     // Return current pairing code if active
     if (this.currentPairingCode && this.currentPairingCode.expiresAt > Date.now()) {
       const result = [{
@@ -452,13 +556,13 @@ export class PearWebSocketServer {
       }];
       return result;
     }
-    
+
     // Also return any pending auth codes
     const pending = Array.from(this.pendingAuth.entries()).map(([clientId, data]) => ({
       clientId,
       ...data,
     }));
-    
+
     return pending;
   }
 

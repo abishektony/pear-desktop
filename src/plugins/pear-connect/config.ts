@@ -1,3 +1,5 @@
+import type { PlaybackTarget } from './types';
+
 export interface PearConnectConfig {
   enabled: boolean;
   port: number;
@@ -10,6 +12,7 @@ export interface PearConnectConfig {
   allowVolumeControl: boolean;
   allowPlaybackControl: boolean;
   allowPlaylistBrowsing: boolean;
+  playbackTarget: PlaybackTarget;
 }
 
 export const defaultPearConnectConfig: PearConnectConfig = {
@@ -24,6 +27,7 @@ export const defaultPearConnectConfig: PearConnectConfig = {
   allowVolumeControl: true,
   allowPlaybackControl: true,
   allowPlaylistBrowsing: true,
+  playbackTarget: 'laptop', // Default: play on laptop only
 };
 
 function generateSecret(): string {
@@ -34,3 +38,4 @@ function generateSecret(): string {
   }
   return secret;
 }
+

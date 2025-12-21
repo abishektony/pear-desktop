@@ -60,6 +60,12 @@ export default createPlugin({
     uiManager: undefined as PearConnectUIManager | undefined,
     dialog: undefined as HTMLElement | undefined,
     overlay: undefined as HTMLElement | undefined,
+    // WebRTC audio streaming
+    peerConnections: new Map<string, RTCPeerConnection>(),
+    audioContext: undefined as AudioContext | undefined,
+    mediaStream: undefined as MediaStream | undefined,
+    currentLyrics: undefined as Array<{ time: number; text: string; translation?: string }> | undefined,
+
 
     async start({ ipc }) {
       this.ipc = ipc;
@@ -91,6 +97,42 @@ export default createPlugin({
       // Listen for seek from backend
       ipc.on('pear-connect:seek', (time: number) => {
         (this as any).handleSeek(time);
+      });
+
+      // Listen for playback target changes
+      ipc.on('pear-connect:playback-target-changed', (target: string) => {
+        // Mute/unmute laptop based on target
+        if (this.playerApi) {
+          if (target === 'phone') {
+            // Mute laptop when playing on phone only
+            this.playerApi.mute();
+          } else {
+            // Unmute laptop for 'laptop' or 'both' modes
+            this.playerApi.unMute();
+          }
+        }
+        // If switching to phone or both, ensure audio streaming is active
+        if (target === 'phone' || target === 'both') {
+          (this as any).setupAudioCapture();
+        }
+      });
+
+      // WebRTC Signaling - Handle RTC offer from phone
+      ipc.on('pear-connect:rtc-offer', async (data: { clientId: string; offer: RTCSessionDescriptionInit }) => {
+        await (this as any).handleRTCOffer(data.clientId, data.offer);
+      });
+
+      // WebRTC Signaling - Handle ICE candidate from phone
+      ipc.on('pear-connect:rtc-ice-candidate', async (data: { clientId: string; candidate: RTCIceCandidateInit }) => {
+        const pc = this.peerConnections.get(data.clientId);
+        if (pc) {
+          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+      });
+
+      // Handle lyrics request
+      ipc.on('pear-connect:get-lyrics', async () => {
+        (this as any).sendLyricsUpdate();
       });
 
       // Add Pear Connect button to the UI (with retry)
@@ -711,6 +753,132 @@ export default createPlugin({
       // Fallback: simulate a double-click on the whole item
       const evt = new MouseEvent('dblclick', { bubbles: true, cancelable: true });
       item.dispatchEvent(evt);
+    },
+
+    // WebRTC Audio Streaming Methods
+    async setupAudioCapture(this: any) {
+      try {
+        // Don't re-create if already exists
+        if (this.mediaStream) return;
+
+        // Find the YouTube Music video/audio element
+        const videoElement = document.querySelector('video') as HTMLVideoElement;
+        if (!videoElement) {
+          console.log('[Pear Connect] No video element found yet');
+          return;
+        }
+
+        // Create audio context if not exists
+        if (!this.audioContext) {
+          this.audioContext = new AudioContext();
+        }
+
+        // Capture the audio from the video element
+        // We use captureStream to get a MediaStream from the video
+        const stream = (videoElement as any).captureStream?.() || (videoElement as any).mozCaptureStream?.();
+        if (stream) {
+          // Get only audio tracks
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            this.mediaStream = new MediaStream(audioTracks);
+            console.log('[Pear Connect] Audio capture ready');
+          }
+        }
+      } catch (error) {
+        console.error('[Pear Connect] Audio capture error:', error);
+      }
+    },
+
+    async handleRTCOffer(this: any, clientId: string, offer: RTCSessionDescriptionInit) {
+      try {
+        // Ensure audio capture is set up
+        await this.setupAudioCapture();
+
+        if (!this.mediaStream) {
+          console.error('[Pear Connect] No media stream available');
+          return;
+        }
+
+        // Create peer connection
+        const pc = new RTCPeerConnection({
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        });
+
+        this.peerConnections.set(clientId, pc);
+
+        // Add audio track to peer connection
+        this.mediaStream.getAudioTracks().forEach((track: MediaStreamTrack) => {
+          pc.addTrack(track, this.mediaStream);
+        });
+
+        // Handle ICE candidates
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            this.ipc?.send('pear-connect:rtc-ice-candidate', {
+              clientId,
+              candidate: event.candidate.toJSON()
+            });
+          }
+        };
+
+        // Set remote description and create answer
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        // Send answer back to phone
+        this.ipc?.send('pear-connect:rtc-answer', {
+          clientId,
+          answer: pc.localDescription?.toJSON()
+        });
+
+        console.log('[Pear Connect] WebRTC connection established with', clientId);
+      } catch (error) {
+        console.error('[Pear Connect] RTC offer handling error:', error);
+      }
+    },
+
+    sendLyricsUpdate(this: any) {
+      // Try to get lyrics from the synced-lyrics plugin if available
+      try {
+        // Get the global lyrics provider if it exists
+        const lyricsProvider = (window as any).__syncedLyricsProvider;
+        if (lyricsProvider && lyricsProvider.getCurrentLyrics) {
+          const lyrics = lyricsProvider.getCurrentLyrics();
+          if (lyrics) {
+            this.currentLyrics = lyrics;
+            this.ipc?.send('pear-connect:lyrics-update', lyrics);
+            return;
+          }
+        }
+
+        // Alternative: try to scrape from the lyrics panel if visible
+        const lyricsContainer = document.querySelector('.ytmusic-player-bar-lyrics-container, .lyrics-content');
+        if (lyricsContainer) {
+          const lyricsText = lyricsContainer.textContent;
+          if (lyricsText) {
+            this.ipc?.send('pear-connect:lyrics-update', [{ time: 0, text: lyricsText }]);
+            return;
+          }
+        }
+
+        // No lyrics available
+        this.ipc?.send('pear-connect:lyrics-update', null);
+      } catch (error) {
+        console.error('[Pear Connect] Lyrics fetch error:', error);
+        this.ipc?.send('pear-connect:lyrics-update', null);
+      }
+    },
+
+    cleanupPeerConnection(this: any, clientId: string) {
+      const pc = this.peerConnections.get(clientId);
+      if (pc) {
+        pc.close();
+        this.peerConnections.delete(clientId);
+      }
     },
   },
 });
