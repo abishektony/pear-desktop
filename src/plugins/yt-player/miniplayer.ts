@@ -19,6 +19,7 @@ const miniplayerHTML = `
     
     <div class="pear-miniplayer-seek" id="pear-miniplayer-seek">
       <div class="pear-miniplayer-seek-progress" id="pear-miniplayer-seek-progress" style="width: 0%"></div>
+      <div class="pear-seek-preview" id="pear-miniplayer-seek-preview">0:00</div>
     </div>
   </div>
 
@@ -26,7 +27,9 @@ const miniplayerHTML = `
     <div class="pear-fullscreen-content">
       <div class="pear-fullscreen-media">
         <canvas class="pear-fullscreen-visualizer-bg" id="pear-fullscreen-visualizer-bg"></canvas>
-        <div class="pear-fullscreen-thumbnail" id="pear-fullscreen-thumb" style="overflow: hidden;">
+        <!-- Two layers for crossfade dissolve effect -->
+        <div class="pear-fullscreen-thumbnail pear-thumb-layer" id="pear-fullscreen-thumb-bottom" style="overflow: hidden;"></div>
+        <div class="pear-fullscreen-thumbnail pear-thumb-layer" id="pear-fullscreen-thumb-top" style="overflow: hidden;">
           <canvas id="pear-fullscreen-canvas" style="width: 100%; height: 100%; display: none;"></canvas>
         </div>
       </div>
@@ -38,12 +41,13 @@ const miniplayerHTML = `
       
       <div class="pear-fullscreen-seek" id="pear-fullscreen-seek">
         <div class="pear-fullscreen-seek-progress" id="pear-fullscreen-seek-progress" style="width: 0%"></div>
+        <div class="pear-seek-preview" id="pear-fullscreen-seek-preview">0:00</div>
       </div>
       
       <div class="pear-fullscreen-controls">
-        <button class="pear-fullscreen-btn" id="pear-fullscreen-shuffle" title="Shuffle">
+        <button class="pear-fullscreen-btn" id="pear-fullscreen-like" title="Like">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </button>
         <button class="pear-fullscreen-btn" id="pear-fullscreen-prev" title="Previous">
@@ -85,13 +89,22 @@ const miniplayerHTML = `
         <div class="pear-fullscreen-volume">
         <button class="pear-fullscreen-btn volume-btn" id="pear-fullscreen-volume-btn" title="Mute/Unmute">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path id="volume-high-1" d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path id="volume-high-2" d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <line id="volume-mute" x1="23" y1="9" x2="17" y2="15" style="display: none;"/>
+                <line id="volume-mute-2" x1="17" y1="9" x2="23" y2="15" style="display: none;"/>
             </svg>
         </button>
         <input type="range" class="pear-fullscreen-volume-slider" id="pear-fullscreen-volume-slider" min="0" max="100" value="100" title="Volume">
         <span class="pear-fullscreen-volume-value" id="pear-fullscreen-volume-value">100%</span>
+        <button class="pear-fullscreen-btn sleep-timer-btn" id="pear-fullscreen-sleep-btn" title="Sleep Timer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span class="pear-sleep-timer-badge" id="pear-sleep-timer-badge" style="display: none;"></span>
+        </button>
         </div>
         <button class="pear-fullscreen-btn queue-btn" id="pear-fullscreen-queue-btn" title="Toggle Queue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -131,6 +144,38 @@ const miniplayerHTML = `
         <div class="pear-fullscreen-queue-content" id="pear-fullscreen-queue-content"></div>
     </div>
   </div>
+
+  <!-- Sleep Timer Modal -->
+  <div class="pear-sleep-timer-modal" id="pear-sleep-timer-modal">
+    <div class="pear-sleep-timer-content">
+      <div class="pear-sleep-timer-title">Sleep Timer</div>
+      <div class="pear-sleep-timer-subtitle">Music will pause after the selected time</div>
+      <div class="pear-sleep-timer-options">
+        <button class="pear-sleep-timer-option selected" data-minutes="5">5 min</button>
+        <button class="pear-sleep-timer-option" data-minutes="10">10 min</button>
+        <button class="pear-sleep-timer-option" data-minutes="15">15 min</button>
+        <button class="pear-sleep-timer-option" data-minutes="30">30 min</button>
+        <button class="pear-sleep-timer-option" data-minutes="45">45 min</button>
+        <button class="pear-sleep-timer-option" data-minutes="60">1 hr</button>
+      </div>
+      <div class="pear-sleep-timer-custom">
+        <span>Or set custom:</span>
+        <input type="number" id="pear-sleep-timer-custom-input" min="1" max="480" placeholder="30">
+        <span>minutes</span>
+      </div>
+      <div class="pear-sleep-timer-wait-toggle">
+        <label>
+          <input type="checkbox" id="pear-sleep-timer-wait-end" checked>
+          <span>Wait until current song ends</span>
+        </label>
+      </div>
+      <div class="pear-sleep-timer-buttons">
+        <button class="pear-sleep-timer-btn primary" id="pear-sleep-timer-start">Start Timer</button>
+        <button class="pear-sleep-timer-btn cancel" id="pear-sleep-timer-cancel" style="display: none;">Cancel Timer</button>
+        <button class="pear-sleep-timer-btn secondary" id="pear-sleep-timer-close">Close</button>
+      </div>
+    </div>
+  </div>
 </div>
 `;
 
@@ -158,6 +203,7 @@ export class Miniplayer {
         clickToSwitch: true,
         draggableEnabled: true,
         widescreenMode: true,
+        crossfadeEnabled: false,
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
     private playerApi: any = null;
@@ -180,11 +226,14 @@ export class Miniplayer {
     private fullscreenPlayButton: HTMLButtonElement | null = null;
     private fullscreenPrevButton: HTMLButtonElement | null = null;
     private fullscreenNextButton: HTMLButtonElement | null = null;
-    private fullscreenShuffleButton: HTMLButtonElement | null = null;
+    private fullscreenLikeButton: HTMLButtonElement | null = null;
     private fullscreenRepeatButton: HTMLButtonElement | null = null;
     private fullscreenSeekBar: HTMLElement | null = null;
     private fullscreenSeekProgress: HTMLElement | null = null;
     private fullscreenThumbnailElement: HTMLElement | null = null;
+    private fullscreenThumbTop: HTMLElement | null = null;
+    private fullscreenThumbBottom: HTMLElement | null = null;
+    private thumbTopActive: boolean = true; // Track which layer has the current image
     private fullscreenCanvas: HTMLCanvasElement | null = null;
     private fullscreenVisualizerBgCanvas: HTMLCanvasElement | null = null;
     private fullscreenCloseButton: HTMLButtonElement | null = null;
@@ -192,6 +241,34 @@ export class Miniplayer {
     private fullscreenVolumeSlider: HTMLInputElement | null = null;
     private fullscreenVolumeValue: HTMLElement | null = null;
     private isFullscreenOpen = false;
+
+    // Sleep Timer properties
+    private sleepTimerModal: HTMLElement | null = null;
+    private sleepTimerButton: HTMLButtonElement | null = null;
+    private sleepTimerBadge: HTMLElement | null = null;
+    private sleepTimerStartBtn: HTMLButtonElement | null = null;
+    private sleepTimerCancelBtn: HTMLButtonElement | null = null;
+    private sleepTimerCloseBtn: HTMLButtonElement | null = null;
+    private sleepTimerCustomInput: HTMLInputElement | null = null;
+    private sleepTimerId: number | null = null;
+    private sleepTimerEndTime: number | null = null;
+    private sleepTimerBadgeInterval: number | null = null;
+    private selectedSleepMinutes: number = 5;
+    private waitUntilSongEnds: boolean = true;
+    private sleepTimerWaitCheckbox: HTMLInputElement | null = null;
+
+    // Crossfade properties
+    private crossfadeDuration: number = 3000; // 3 seconds default
+    private isCrossfading: boolean = false;
+    private lastVideoId: string | null = null;
+    private currentThumbnailUrl: string | null = null;
+
+    // Seek bar preview properties
+    private miniplayerSeekPreview: HTMLElement | null = null;
+    private fullscreenSeekPreview: HTMLElement | null = null;
+
+    // Volume persistence
+    private savedVolume: number = 1.0; // Store volume level (0.0 to 1.0)
 
     private boundHandleAudioCanPlay: (e: Event) => void;
     private boundHandleResize: () => void;
@@ -220,11 +297,26 @@ export class Miniplayer {
         // Load saved position
         this.loadSavedPosition();
 
+        // Load saved mode preference
+        const savedMode = localStorage.getItem('pear-player-mode');
+        if (savedMode && ['visualizer', 'video', 'thumbnail'].includes(savedMode)) {
+            this.preferredMode = savedMode as 'visualizer' | 'video' | 'thumbnail';
+        }
+
+        // Load saved volume preference
+        const savedVolume = localStorage.getItem('pear-player-volume');
+        if (savedVolume) {
+            this.savedVolume = parseFloat(savedVolume);
+        }
+
         // Try to connect to existing audio context if available
         this.tryConnectExistingAudio();
 
         // Initial check
         this.checkWindowSize();
+
+        // Setup crossfade video listener
+        this.setupCrossfadeListener();
     }
 
     private tryConnectExistingAudio() {
@@ -328,37 +420,103 @@ export class Miniplayer {
         this.fullscreenPlayButton = this.element.querySelector('#pear-fullscreen-play');
         this.fullscreenPrevButton = this.element.querySelector('#pear-fullscreen-prev');
         this.fullscreenNextButton = this.element.querySelector('#pear-fullscreen-next');
-        this.fullscreenShuffleButton = this.element.querySelector('#pear-fullscreen-shuffle');
+        this.fullscreenLikeButton = this.element.querySelector('#pear-fullscreen-like');
         this.fullscreenRepeatButton = this.element.querySelector('#pear-fullscreen-repeat');
         this.fullscreenSeekBar = this.element.querySelector('#pear-fullscreen-seek');
         this.fullscreenSeekProgress = this.element.querySelector('#pear-fullscreen-seek-progress');
-        this.fullscreenThumbnailElement = this.element.querySelector('#pear-fullscreen-thumb');
+        this.fullscreenThumbTop = this.element.querySelector('#pear-fullscreen-thumb-top');
+        this.fullscreenThumbBottom = this.element.querySelector('#pear-fullscreen-thumb-bottom');
+        this.fullscreenThumbnailElement = this.fullscreenThumbTop; // Use top as primary for compatibility
         this.fullscreenCanvas = this.element.querySelector('#pear-fullscreen-canvas');
         this.fullscreenVisualizerBgCanvas = this.element.querySelector('#pear-fullscreen-visualizer-bg');
         this.fullscreenCloseButton = this.element.querySelector('#pear-fullscreen-close');
         this.fullscreenVolumeButton = this.element.querySelector('#pear-fullscreen-volume-btn');
         this.fullscreenVolumeSlider = this.element.querySelector('#pear-fullscreen-volume-slider');
         this.fullscreenVolumeValue = this.element.querySelector('#pear-fullscreen-volume-value');
+
+        // Sleep timer elements
+        this.sleepTimerModal = this.element.querySelector('#pear-sleep-timer-modal');
+        this.sleepTimerButton = this.element.querySelector('#pear-fullscreen-sleep-btn');
+        this.sleepTimerBadge = this.element.querySelector('#pear-sleep-timer-badge');
+        this.sleepTimerStartBtn = this.element.querySelector('#pear-sleep-timer-start');
+        this.sleepTimerCancelBtn = this.element.querySelector('#pear-sleep-timer-cancel');
+        this.sleepTimerCloseBtn = this.element.querySelector('#pear-sleep-timer-close');
+        this.sleepTimerCustomInput = this.element.querySelector('#pear-sleep-timer-custom-input');
+        this.sleepTimerWaitCheckbox = this.element.querySelector('#pear-sleep-timer-wait-end');
+
+        // Seek bar preview elements
+        this.miniplayerSeekPreview = this.element.querySelector('#pear-miniplayer-seek-preview');
+        this.fullscreenSeekPreview = this.element.querySelector('#pear-fullscreen-seek-preview');
+    }
+
+    /**
+     * Helper method to setup button event handlers that work with both mouse and touch/stylus input.
+     * This ensures buttons respond properly to touch events on tablets and stylus input.
+     */
+    private setupButtonHandler(button: HTMLElement | null, handler: () => void) {
+        if (!button) return;
+
+        let lastExecutionTime = 0;
+        const debounceDelay = 300; // Prevent duplicate calls within 300ms
+
+        const debouncedHandler = () => {
+            const now = Date.now();
+            if (now - lastExecutionTime > debounceDelay) {
+                lastExecutionTime = now;
+                handler();
+            }
+        };
+
+        // Handle touch events (for touch screens and stylus)
+        button.addEventListener('touchend', (e) => {
+            debouncedHandler();
+        }, { passive: true });
+
+        // Handle mouse clicks (for desktop)
+        button.addEventListener('click', () => {
+            debouncedHandler();
+        });
     }
 
     private setupEventListeners() {
-        this.playButton?.addEventListener('click', () => {
-            const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
-            playPauseButton?.click();
+        // Miniplayer controls with touch/stylus support
+        this.setupButtonHandler(this.playButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                const video = document.querySelector('video');
+                if (video?.paused) {
+                    this.playerApi.playVideo();
+                } else {
+                    this.playerApi.pauseVideo();
+                }
+            } else {
+                const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
+                playPauseButton?.click();
+            }
         });
 
-        this.fullscreenQueueButton?.addEventListener('click', () => {
+        this.setupButtonHandler(this.fullscreenQueueButton, () => {
             this.toggleQueue();
         });
 
-        this.prevButton?.addEventListener('click', () => {
-            const prevButton = document.querySelector<HTMLElement>('.previous-button.ytmusic-player-bar');
-            prevButton?.click();
+        this.setupButtonHandler(this.prevButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                this.playerApi.previousVideo();
+            } else {
+                const prevButton = document.querySelector<HTMLElement>('.previous-button.ytmusic-player-bar');
+                prevButton?.click();
+            }
         });
 
-        this.nextButton?.addEventListener('click', () => {
-            const nextButton = document.querySelector<HTMLElement>('.next-button.ytmusic-player-bar');
-            nextButton?.click();
+        this.setupButtonHandler(this.nextButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                this.playerApi.nextVideo();
+            } else {
+                const nextButton = document.querySelector<HTMLElement>('.next-button.ytmusic-player-bar');
+                nextButton?.click();
+            }
         });
 
         this.seekBar?.addEventListener('click', (e) => {
@@ -399,31 +557,90 @@ export class Miniplayer {
             console.log('[Miniplayer] Opening fullscreen');
             this.openFullscreen();
         });
-        // Fullscreen player event listeners
-        this.fullscreenPlayButton?.addEventListener('click', () => {
-            const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
-            playPauseButton?.click();
+
+        // Fullscreen player event listeners with touch/stylus support
+        this.setupButtonHandler(this.fullscreenPlayButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                const video = document.querySelector('video');
+                if (video?.paused) {
+                    this.playerApi.playVideo();
+                } else {
+                    this.playerApi.pauseVideo();
+                }
+            } else {
+                const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
+                playPauseButton?.click();
+            }
         });
 
-        this.fullscreenPrevButton?.addEventListener('click', () => {
-            const prevButton = document.querySelector<HTMLElement>('.previous-button.ytmusic-player-bar');
-            prevButton?.click();
+        this.setupButtonHandler(this.fullscreenPrevButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                this.playerApi.previousVideo();
+            } else {
+                const prevButton = document.querySelector<HTMLElement>('.previous-button.ytmusic-player-bar');
+                prevButton?.click();
+            }
         });
 
-        this.fullscreenNextButton?.addEventListener('click', () => {
-            const nextButton = document.querySelector<HTMLElement>('.next-button.ytmusic-player-bar');
-            nextButton?.click();
+        this.setupButtonHandler(this.fullscreenNextButton, () => {
+            // Use playerApi if available, otherwise fall back to DOM click
+            if (this.playerApi) {
+                this.playerApi.nextVideo();
+            } else {
+                const nextButton = document.querySelector<HTMLElement>('.next-button.ytmusic-player-bar');
+                nextButton?.click();
+            }
         });
 
-        this.fullscreenShuffleButton?.addEventListener('click', () => {
-            const shuffleButton = document.querySelector<HTMLElement>('ytmusic-player-bar tp-yt-paper-icon-button.shuffle');
-            shuffleButton?.click();
+        this.setupButtonHandler(this.fullscreenLikeButton, () => {
+            // Try multiple selectors to find the like button
+            const likeButton = document.querySelector<HTMLElement>('#button-shape-like button') ||
+                document.querySelector<HTMLElement>('yt-button-shape.like button') ||
+                document.querySelector<HTMLElement>('ytmusic-like-button-renderer button');
+
+            if (likeButton) {
+                // Dispatch a proper click event that works with touch
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                likeButton.dispatchEvent(clickEvent);
+
+                // Update our button state after a short delay
+                setTimeout(() => this.updateLikeButtonState(), 100);
+            }
         });
 
-        this.fullscreenRepeatButton?.addEventListener('click', () => {
-            const repeatButton = document.querySelector<HTMLElement>('ytmusic-player-bar tp-yt-paper-icon-button.repeat');
-            repeatButton?.click();
+        // Initial sync and periodic updates for like button state
+        this.updateLikeButtonState();
+        setInterval(() => this.updateLikeButtonState(), 1000); // Check every second
+
+        this.setupButtonHandler(this.fullscreenRepeatButton, () => {
+            // Try multiple selectors to find the repeat button
+            const repeatButton = document.querySelector<HTMLElement>('yt-icon-button.repeat button') ||
+                document.querySelector<HTMLElement>('.repeat.ytmusic-player-bar button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar tp-yt-paper-icon-button.repeat');
+
+            if (repeatButton) {
+                // Dispatch a proper click event that works with touch
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                });
+                repeatButton.dispatchEvent(clickEvent);
+
+                // Update our button state after a short delay
+                setTimeout(() => this.updateRepeatButtonState(), 100);
+            }
         });
+
+        // Initial sync and periodic updates for repeat button state
+        this.updateRepeatButtonState();
+        setInterval(() => this.updateRepeatButtonState(), 1000); // Check every second
 
         this.fullscreenSeekBar?.addEventListener('click', (e) => {
             const rect = this.fullscreenSeekBar!.getBoundingClientRect();
@@ -434,28 +651,11 @@ export class Miniplayer {
             }
         });
 
-        this.fullscreenCloseButton?.addEventListener('click', () => {
+        this.setupButtonHandler(this.fullscreenCloseButton, () => {
             this.closeFullscreen();
         });
 
-        this.fullscreenCloseButton?.addEventListener('click', () => {
-            this.closeFullscreen();
-        });
-
-        // Auto-close fullscreen on very small screens
-        // window.addEventListener('resize', () => {
-        //     if (this.isFullscreenOpen) {
-        //         const width = window.innerWidth;
-        //         const height = window.innerHeight;
-
-        //         // Close fullscreen if screen is too small
-        //         if (width <= 390 || height <= 560) {
-        //             this.closeFullscreen();
-        //         }
-        //     }
-        // });
-
-        this.fullscreenVolumeButton?.addEventListener('click', () => {
+        this.setupButtonHandler(this.fullscreenVolumeButton, () => {
             const video = document.querySelector('video');
             if (video) {
                 video.muted = !video.muted;
@@ -467,12 +667,45 @@ export class Miniplayer {
             const video = document.querySelector('video');
             if (video) {
                 const value = parseInt((e.target as HTMLInputElement).value);
-                video.volume = value / 100;
+                const volumeLevel = value / 100;
+                video.volume = volumeLevel;
                 video.muted = false;
+                this.savedVolume = volumeLevel; // Save the volume preference
+                localStorage.setItem('pear-player-volume', String(volumeLevel)); // Persist to localStorage
                 this.updateVolumeIcon();
                 this.updateVolumeValue();
             }
         });
+
+        // Listen for video element changes to reapply volume when songs change
+        const observer = new MutationObserver(() => {
+            const video = document.querySelector('video');
+            if (video && Math.abs(video.volume - this.savedVolume) > 0.01) {
+                // Only update if the volume has changed significantly (song change reset it)
+                video.volume = this.savedVolume;
+                if (this.fullscreenVolumeSlider) {
+                    this.fullscreenVolumeSlider.value = String(Math.round(this.savedVolume * 100));
+                }
+                this.updateVolumeValue();
+            }
+        });
+
+        // Observe the video element for attribute changes
+        const videoObserver = setInterval(() => {
+            const video = document.querySelector('video');
+            if (video) {
+                observer.observe(video, { attributes: true, attributeFilter: ['src'] });
+                // Also listen for the 'loadedmetadata' event which fires when a new song loads
+                video.addEventListener('loadedmetadata', () => {
+                    video.volume = this.savedVolume;
+                    if (this.fullscreenVolumeSlider) {
+                        this.fullscreenVolumeSlider.value = String(Math.round(this.savedVolume * 100));
+                    }
+                    this.updateVolumeValue();
+                });
+                clearInterval(videoObserver);
+            }
+        }, 100);
 
         if (this.fullscreenThumbnailElement) {
             this.fullscreenThumbnailElement.addEventListener('click', () => {
@@ -480,8 +713,82 @@ export class Miniplayer {
                 this.cycleMode();
             });
         }
-        this.fullscreenLyricsButton?.addEventListener('click', () => {
+
+        this.setupButtonHandler(this.fullscreenLyricsButton, () => {
             this.toggleLyrics();
+        });
+
+        // ===== Seek Bar Preview Event Listeners =====
+        // Miniplayer seek bar hover for preview
+        this.seekBar?.addEventListener('mousemove', (e) => {
+            this.updateSeekPreview(e, this.seekBar!, this.miniplayerSeekPreview!);
+        });
+        this.seekBar?.addEventListener('mouseleave', () => {
+            if (this.miniplayerSeekPreview) {
+                this.miniplayerSeekPreview.style.opacity = '0';
+            }
+        });
+
+        // Fullscreen seek bar hover for preview
+        this.fullscreenSeekBar?.addEventListener('mousemove', (e) => {
+            this.updateSeekPreview(e, this.fullscreenSeekBar!, this.fullscreenSeekPreview!);
+        });
+        this.fullscreenSeekBar?.addEventListener('mouseleave', () => {
+            if (this.fullscreenSeekPreview) {
+                this.fullscreenSeekPreview.style.opacity = '0';
+            }
+        });
+
+        // ===== Sleep Timer Event Listeners =====
+        this.setupButtonHandler(this.sleepTimerButton, () => {
+            this.openSleepTimerModal();
+        });
+
+        this.setupButtonHandler(this.sleepTimerStartBtn, () => {
+            this.startSleepTimer();
+        });
+
+        this.setupButtonHandler(this.sleepTimerCancelBtn, () => {
+            this.cancelSleepTimer();
+        });
+
+        this.setupButtonHandler(this.sleepTimerCloseBtn, () => {
+            this.closeSleepTimerModal();
+        });
+
+        // Sleep timer option buttons
+        const sleepOptions = this.element.querySelectorAll('.pear-sleep-timer-option');
+        sleepOptions.forEach((option) => {
+            option.addEventListener('click', () => {
+                // Remove selected from all
+                sleepOptions.forEach(opt => opt.classList.remove('selected'));
+                // Add selected to clicked
+                option.classList.add('selected');
+                // Update selected minutes
+                const minutes = parseInt(option.getAttribute('data-minutes') || '30');
+                this.selectedSleepMinutes = minutes;
+                // Clear custom input
+                if (this.sleepTimerCustomInput) {
+                    this.sleepTimerCustomInput.value = '';
+                }
+            });
+        });
+
+        // Custom input override
+        this.sleepTimerCustomInput?.addEventListener('input', () => {
+            // Deselect preset options when typing custom
+            sleepOptions.forEach(opt => opt.classList.remove('selected'));
+            const value = parseInt(this.sleepTimerCustomInput?.value || '0');
+            if (value > 0) {
+                this.selectedSleepMinutes = value;
+            }
+        });
+
+        // Close modal when clicking outside
+        this.sleepTimerModal?.addEventListener('click', (e) => {
+            if (e.target === this.sleepTimerModal) {
+                this.closeSleepTimerModal();
+            }
         });
     }
 
@@ -684,6 +991,10 @@ export class Miniplayer {
         const nextIndex = (currentIndex + 1) % modes.length;
         const oldMode = this.preferredMode;
         this.preferredMode = modes[nextIndex];
+
+        // Save the new mode preference
+        localStorage.setItem('pear-player-mode', this.preferredMode);
+
         console.log(`[Miniplayer] Mode cycled from ${oldMode} to ${this.preferredMode}.Available modes: `, modes);
     }
 
@@ -1298,40 +1609,6 @@ export class Miniplayer {
         }
     }
 
-    private updateVolumeIcon() {
-        if (!this.fullscreenVolumeButton) return;
-        const video = document.querySelector('video');
-        if (!video) return;
-
-        const muteIcon = `
-                < svg width = "24" height = "24" viewBox = "0 0 24 24" fill = "none" stroke = "currentColor" stroke - width="2" stroke - linecap="round" stroke - linejoin="round" >
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                        <line x1="23" y1 = "9" x2 = "17" y2 = "15" />
-                            <line x1="17" y1 = "9" x2 = "23" y2 = "15" />
-                                </svg>`;
-
-        const lowVolumeIcon = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-            </svg>`;
-
-        const highVolumeIcon = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-            </svg>`;
-
-        if (video.muted || video.volume === 0) {
-            this.fullscreenVolumeButton.innerHTML = muteIcon;
-        } else if (video.volume < 0.5) {
-            this.fullscreenVolumeButton.innerHTML = lowVolumeIcon;
-        } else {
-            this.fullscreenVolumeButton.innerHTML = highVolumeIcon;
-        }
-    }
-
     private updateFullscreenPlayerState() {
         try {
             const titleEl = document.querySelector('.title.ytmusic-player-bar');
@@ -1384,6 +1661,33 @@ export class Miniplayer {
         this.fullscreenVolumeValue.textContent = `${volumePercent}%`;
     }
 
+    private updateVolumeIcon() {
+        const video = document.querySelector('video');
+        if (!video) return;
+
+        const isMuted = video.muted || video.volume === 0;
+
+        // Toggle volume wave paths
+        const volumeHigh1 = document.getElementById('volume-high-1');
+        const volumeHigh2 = document.getElementById('volume-high-2');
+        const volumeMute = document.getElementById('volume-mute');
+        const volumeMute2 = document.getElementById('volume-mute-2');
+
+        if (isMuted) {
+            // Show mute X, hide volume waves
+            if (volumeHigh1) volumeHigh1.style.display = 'none';
+            if (volumeHigh2) volumeHigh2.style.display = 'none';
+            if (volumeMute) volumeMute.style.display = 'block';
+            if (volumeMute2) volumeMute2.style.display = 'block';
+        } else {
+            // Show volume waves, hide mute X
+            if (volumeHigh1) volumeHigh1.style.display = 'block';
+            if (volumeHigh2) volumeHigh2.style.display = 'block';
+            if (volumeMute) volumeMute.style.display = 'none';
+            if (volumeMute2) volumeMute2.style.display = 'none';
+        }
+    }
+
 
     private updatePlayerState() {
         try {
@@ -1415,6 +1719,9 @@ export class Miniplayer {
             if (oldTitle && newTitle && oldTitle !== newTitle && this.isQueueOpen) {
                 this.renderQueue();
             }
+
+            // Check for song change (for crossfade)
+            this.checkForSongChange();
 
             // Set or clear thumbnail; verify image asynchronously to avoid channel avatar/placeholder
             if (this.thumbnailElement) {
@@ -1601,22 +1908,70 @@ export class Miniplayer {
 
         const setBg = (url: string | null) => {
             if (!this.fullscreenThumbnailElement) return;
+
+            // Handle null URL
             if (!url) {
                 this.fullscreenThumbnailElement.style.backgroundImage = '';
-                // Also clear the CSS variable for the blurred background
+                this.currentThumbnailUrl = null;
                 if (this.fullscreenPlayer) {
                     this.fullscreenPlayer.style.setProperty('--bg-image', 'none');
                 }
                 return;
             }
-            this.fullscreenThumbnailElement.style.backgroundImage = `url(${url})`;
-            this.fullscreenThumbnailElement.style.backgroundSize = 'cover';
-            this.fullscreenThumbnailElement.style.backgroundPosition = 'center';
 
-            // Also update the CSS variable for the blurred background
-            if (this.fullscreenPlayer) {
-                this.fullscreenPlayer.style.setProperty('--bg-image', `url("${url}")`);
+            // Skip if same image
+            if (url === this.currentThumbnailUrl) return;
+
+            // Use dual-layer crossfade for smooth dissolve effect
+            const topLayer = this.fullscreenThumbTop;
+            const bottomLayer = this.fullscreenThumbBottom;
+
+            if (!topLayer || !bottomLayer) {
+                // Fallback to single element if layers not available
+                if (this.fullscreenThumbnailElement) {
+                    this.fullscreenThumbnailElement.style.backgroundImage = `url(${url})`;
+                    this.fullscreenThumbnailElement.style.backgroundSize = 'cover';
+                    this.fullscreenThumbnailElement.style.backgroundPosition = 'center';
+                }
+                this.currentThumbnailUrl = url;
+                if (this.fullscreenPlayer) {
+                    this.fullscreenPlayer.style.setProperty('--bg-image', `url("${url}")`);
+                }
+                return;
             }
+
+            // Step 1: Set new image on bottom layer (it's behind top layer)
+            bottomLayer.style.backgroundImage = `url(${url})`;
+            bottomLayer.style.backgroundSize = 'cover';
+            bottomLayer.style.backgroundPosition = 'center';
+
+            // Step 2: Fade out top layer to reveal bottom layer (dissolve effect)
+            topLayer.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)';
+            topLayer.style.opacity = '0';
+
+            // Step 3: After fade completes, swap layers
+            setTimeout(() => {
+                // Copy new image to top layer
+                topLayer.style.backgroundImage = `url(${url})`;
+                topLayer.style.backgroundSize = 'cover';
+                topLayer.style.backgroundPosition = 'center';
+
+                // Reset opacity (instantly, no transition)
+                topLayer.style.transition = 'none';
+                topLayer.style.opacity = '1';
+
+                // Re-enable transitions for next crossfade
+                setTimeout(() => {
+                    topLayer.style.transition = 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1)';
+                }, 50);
+
+                this.currentThumbnailUrl = url;
+
+                // Update background blur
+                if (this.fullscreenPlayer) {
+                    this.fullscreenPlayer.style.setProperty('--bg-image', `url("${url}")`);
+                }
+            }, 1000);
         };
 
         if (!candidate || isPlaceholder(candidate)) {
@@ -1875,6 +2230,49 @@ export class Miniplayer {
         }
     }
 
+    private updateLikeButtonState() {
+        // Check YouTube Music's like button state
+        const ytLikeButton = document.querySelector<HTMLElement>('#button-shape-like button') ||
+            document.querySelector<HTMLElement>('yt-button-shape.like button') ||
+            document.querySelector<HTMLElement>('ytmusic-like-button-renderer button');
+
+        if (ytLikeButton && this.fullscreenLikeButton) {
+            const isLiked = ytLikeButton.getAttribute('aria-pressed') === 'true';
+
+            // Update our button's appearance
+            if (isLiked) {
+                this.fullscreenLikeButton.classList.add('active');
+            } else {
+                this.fullscreenLikeButton.classList.remove('active');
+            }
+        }
+    }
+
+    private updateRepeatButtonState() {
+        // Check YouTube Music's repeat button state
+        const ytRepeatButton = document.querySelector<HTMLElement>('yt-icon-button.repeat') ||
+            document.querySelector<HTMLElement>('.repeat.ytmusic-player-bar');
+
+        if (ytRepeatButton && this.fullscreenRepeatButton) {
+            // Check title or aria-label to determine repeat state
+            const title = ytRepeatButton.getAttribute('title') || '';
+            const label = ytRepeatButton.getAttribute('label') || '';
+            const ariaLabel = ytRepeatButton.querySelector('button')?.getAttribute('aria-label') || '';
+
+            const stateText = (title + label + ariaLabel).toLowerCase();
+
+            // Repeat is active if it's not "repeat off"
+            const isRepeatActive = !stateText.includes('repeat off');
+
+            // Update our button's appearance
+            if (isRepeatActive) {
+                this.fullscreenRepeatButton.classList.add('active');
+            } else {
+                this.fullscreenRepeatButton.classList.remove('active');
+            }
+        }
+    }
+
     private updateSize() {
         if (!this.isActive) return;
 
@@ -1897,6 +2295,361 @@ export class Miniplayer {
         }
     }
 
+    // ===== SEEK BAR PREVIEW METHODS =====
+    private updateSeekPreview(e: MouseEvent, seekBar: HTMLElement, previewElement: HTMLElement) {
+        if (!previewElement) return;
+
+        const video = document.querySelector('video');
+        if (!video || !video.duration) {
+            previewElement.style.opacity = '0';
+            return;
+        }
+
+        const rect = seekBar.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const previewTime = percent * video.duration;
+
+        // Format time
+        const minutes = Math.floor(previewTime / 60);
+        const seconds = Math.floor(previewTime % 60);
+        const formattedTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        // Update preview text
+        previewElement.textContent = formattedTime;
+
+        // Position the preview tooltip
+        const previewWidth = previewElement.offsetWidth || 50;
+        let leftPosition = e.clientX - rect.left;
+
+        // Constrain to stay within the seek bar bounds
+        leftPosition = Math.max(previewWidth / 2, Math.min(leftPosition, rect.width - previewWidth / 2));
+
+        previewElement.style.left = `${leftPosition}px`;
+        previewElement.style.opacity = '1';
+    }
+
+    private formatTime(seconds: number): string {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ===== SLEEP TIMER METHODS =====
+    private openSleepTimerModal() {
+        if (!this.sleepTimerModal) return;
+
+        this.sleepTimerModal.classList.add('active');
+
+        // Update UI based on whether timer is active
+        if (this.sleepTimerId) {
+            // Timer is running - show cancel option
+            if (this.sleepTimerStartBtn) this.sleepTimerStartBtn.style.display = 'none';
+            if (this.sleepTimerCancelBtn) this.sleepTimerCancelBtn.style.display = 'block';
+        } else {
+            // No timer running - show start option
+            if (this.sleepTimerStartBtn) this.sleepTimerStartBtn.style.display = 'block';
+            if (this.sleepTimerCancelBtn) this.sleepTimerCancelBtn.style.display = 'none';
+        }
+    }
+
+    private closeSleepTimerModal() {
+        if (!this.sleepTimerModal) return;
+        this.sleepTimerModal.classList.remove('active');
+    }
+
+    private startSleepTimer() {
+        // Cancel any existing timer
+        this.cancelSleepTimer();
+
+        const minutes = this.selectedSleepMinutes;
+        if (minutes <= 0) return;
+
+        // Get the checkbox state
+        this.waitUntilSongEnds = this.sleepTimerWaitCheckbox?.checked ?? true;
+
+        console.log(`[Miniplayer] Starting sleep timer for ${minutes} minutes (wait for song end: ${this.waitUntilSongEnds})`);
+
+        // Calculate end time
+        this.sleepTimerEndTime = Date.now() + (minutes * 60 * 1000);
+
+        // Set the main timeout
+        this.sleepTimerId = window.setTimeout(() => {
+            if (this.waitUntilSongEnds) {
+                // Wait for current song to end before pausing
+                console.log('[Miniplayer] Timer expired - waiting for song to end');
+
+                const video = document.querySelector('video');
+                if (video) {
+                    // Update badge to show we're waiting
+                    if (this.sleepTimerBadge) {
+                        this.sleepTimerBadge.textContent = '♪';
+                    }
+
+                    // Stop the countdown interval
+                    if (this.sleepTimerBadgeInterval) {
+                        clearInterval(this.sleepTimerBadgeInterval);
+                        this.sleepTimerBadgeInterval = null;
+                    }
+
+                    // Listen for when NEXT song starts loading - pause immediately
+                    const handleNextSongLoad = () => {
+                        console.log('[Miniplayer] Next song loading - pausing now');
+                        this.executeSleepTimer();
+                        video.removeEventListener('loadstart', handleNextSongLoad);
+                    };
+                    video.addEventListener('loadstart', handleNextSongLoad);
+
+                    // Store the handler so we can remove it if timer is cancelled
+                    (this as any).songEndHandler = handleNextSongLoad;
+                    (this as any).songEndEventType = 'loadstart';
+                } else {
+                    // No video found, just pause
+                    this.executeSleepTimer();
+                }
+            } else {
+                // Pause immediately
+                this.executeSleepTimer();
+            }
+        }, minutes * 60 * 1000);
+
+        // Start badge update interval
+        this.updateSleepTimerBadge();
+        this.sleepTimerBadgeInterval = window.setInterval(() => {
+            this.updateSleepTimerBadge();
+        }, 1000);
+
+        // Update button states
+        if (this.sleepTimerButton) {
+            this.sleepTimerButton.classList.add('active');
+        }
+
+        // Show badge
+        if (this.sleepTimerBadge) {
+            this.sleepTimerBadge.style.display = 'block';
+        }
+
+        this.closeSleepTimerModal();
+    }
+
+    private cancelSleepTimer() {
+        if (this.sleepTimerId) {
+            clearTimeout(this.sleepTimerId);
+            this.sleepTimerId = null;
+        }
+
+        if (this.sleepTimerBadgeInterval) {
+            clearInterval(this.sleepTimerBadgeInterval);
+            this.sleepTimerBadgeInterval = null;
+        }
+
+        this.sleepTimerEndTime = null;
+
+        // Remove song end event listener if it exists
+        if ((this as any).songEndHandler) {
+            const video = document.querySelector('video');
+            if (video) {
+                const eventType = (this as any).songEndEventType || 'loadstart';
+                video.removeEventListener(eventType, (this as any).songEndHandler);
+            }
+            delete (this as any).songEndHandler;
+            delete (this as any).songEndEventType;
+        }
+
+        // Hide badge
+        if (this.sleepTimerBadge) {
+            this.sleepTimerBadge.style.display = 'none';
+        }
+
+        // Update button states
+        if (this.sleepTimerButton) {
+            this.sleepTimerButton.classList.remove('active');
+        }
+
+        // Update modal UI
+        if (this.sleepTimerStartBtn) this.sleepTimerStartBtn.style.display = 'block';
+        if (this.sleepTimerCancelBtn) this.sleepTimerCancelBtn.style.display = 'none';
+
+        console.log('[Miniplayer] Sleep timer cancelled');
+    }
+
+    private updateSleepTimerBadge() {
+        if (!this.sleepTimerBadge || !this.sleepTimerEndTime) return;
+
+        const remaining = Math.max(0, this.sleepTimerEndTime - Date.now());
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+
+        if (remaining <= 0) {
+            this.sleepTimerBadge.textContent = '0:00';
+            return;
+        }
+
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            this.sleepTimerBadge.textContent = `${hours}h${mins}m`;
+        } else if (minutes > 0) {
+            this.sleepTimerBadge.textContent = `${minutes}m`;
+        } else {
+            this.sleepTimerBadge.textContent = `${seconds}s`;
+        }
+    }
+
+    private executeSleepTimer() {
+        console.log('[Miniplayer] Sleep timer triggered - pausing playback');
+
+        // Pause the video
+        const video = document.querySelector('video');
+        if (video) {
+            video.pause();
+        }
+
+        // Also try the YouTube Music play/pause button
+        const playPauseButton = document.querySelector<HTMLElement>('#play-pause-button');
+        if (playPauseButton) {
+            const isPlaying = document.querySelector('ytmusic-player-bar')?.getAttribute('playing') !== null;
+            if (isPlaying) {
+                playPauseButton.click();
+            }
+        }
+
+        // Clean up timer state
+        this.cancelSleepTimer();
+    }
+
+    // ===== CROSSFADE METHODS =====
+    private setupCrossfadeListener() {
+        // Find video and attach listeners for song changes
+        const attachListeners = () => {
+            const video = document.querySelector('video');
+            if (!video) {
+                // Retry after a short delay if video not found
+                setTimeout(attachListeners, 1000);
+                return;
+            }
+
+            // Store original volume for restoration
+            let storedVolume = video.volume || 1;
+
+            // Listen for when new media starts loading
+            video.addEventListener('loadstart', () => {
+                if (!this.config.crossfadeEnabled) return;
+                if (this.isCrossfading) return;
+
+                // Store current volume before muting
+                storedVolume = video.volume || 1;
+
+                // Immediately mute to prevent loud transition
+                video.volume = 0;
+                console.log('[Miniplayer] Crossfade: New song loading - muted');
+            });
+
+            // Listen for when new media is ready to play
+            video.addEventListener('canplay', () => {
+                if (!this.config.crossfadeEnabled) return;
+                if (this.isCrossfading) return;
+
+                // Only fade if volume is currently 0 (we muted it in loadstart)
+                if (video.volume === 0) {
+                    this.isCrossfading = true;
+                    console.log('[Miniplayer] Crossfade: Song ready - fading in');
+
+                    const targetVolume = storedVolume;
+                    const steps = 25;
+                    const stepDuration = this.crossfadeDuration / steps;
+                    let currentStep = 0;
+
+                    const fadeIn = () => {
+                        currentStep++;
+                        if (currentStep <= steps) {
+                            const progress = currentStep / steps;
+                            const easedProgress = 1 - Math.pow(1 - progress, 2);
+                            video.volume = targetVolume * easedProgress;
+                            setTimeout(fadeIn, stepDuration);
+                        } else {
+                            video.volume = targetVolume;
+                            this.isCrossfading = false;
+                            console.log('[Miniplayer] Crossfade: Fade complete');
+                        }
+                    };
+
+                    fadeIn();
+                }
+            });
+
+            console.log('[Miniplayer] Crossfade listener attached to video');
+        };
+
+        // Start trying to attach listeners
+        attachListeners();
+    }
+
+    private checkForSongChange() {
+        // Use config.crossfadeEnabled from plugin settings
+        if (!this.config.crossfadeEnabled) return;
+
+        // Get current video ID
+        const currentVideoId = this.getCurrentVideoId();
+
+        if (this.lastVideoId && currentVideoId && this.lastVideoId !== currentVideoId) {
+            // Song changed - initiate crossfade
+            this.initiateCrossfade();
+        }
+
+        this.lastVideoId = currentVideoId;
+    }
+
+    private getCurrentVideoId(): string | null {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('v');
+        } catch (e) {
+            return null;
+        }
+    }
+
+    private initiateCrossfade() {
+        if (this.isCrossfading) return;
+
+        const video = document.querySelector('video');
+        if (!video) return;
+
+        this.isCrossfading = true;
+
+        // Store the target volume (current volume or 1 if muted)
+        const targetVolume = video.muted ? 1 : video.volume || 1;
+
+        // Start at zero volume for smooth fade-in
+        video.volume = 0;
+        if (video.muted) video.muted = false;
+
+        console.log('[Miniplayer] Initiating crossfade - fading in new song');
+
+        const steps = 20; // Number of fade steps
+        const stepDuration = this.crossfadeDuration / steps;
+        let currentStep = 0;
+
+        // Fade in the new song
+        const fadeIn = () => {
+            currentStep++;
+            if (currentStep <= steps) {
+                // Ease-out curve for smoother fade
+                const progress = currentStep / steps;
+                const easedProgress = 1 - Math.pow(1 - progress, 2);
+                video.volume = targetVolume * easedProgress;
+                setTimeout(fadeIn, stepDuration);
+            } else {
+                // Ensure final volume is exactly the target
+                video.volume = targetVolume;
+                this.isCrossfading = false;
+                console.log('[Miniplayer] Crossfade complete');
+            }
+        };
+
+        // Small delay to let the new song buffer/start
+        setTimeout(fadeIn, 100);
+    }
+
     getElement(): HTMLElement {
         return this.element;
     }
@@ -1913,6 +2666,9 @@ export class Miniplayer {
         if (this.isFullscreenOpen) {
             this.closeFullscreen();
         }
+
+        // Cancel sleep timer if active
+        this.cancelSleepTimer();
 
         // Unmount lyrics if they're open
         if (this.isLyricsOpen && this.fullscreenLyricsContent) {

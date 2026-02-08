@@ -15,6 +15,7 @@ export default createPlugin({
         clickToSwitch: true,
         draggableEnabled: true,
         widescreenMode: true,
+        crossfadeEnabled: false,
     },
     stylesheets: [style],
     menu: async ({ getConfig, setConfig }) => {
@@ -79,6 +80,14 @@ export default createPlugin({
                 checked: config.widescreenMode,
                 click(item) {
                     setConfig({ widescreenMode: item.checked });
+                },
+            },
+            {
+                label: 'Crossfade Between Songs',
+                type: 'checkbox',
+                checked: config.crossfadeEnabled,
+                click(item) {
+                    setConfig({ crossfadeEnabled: item.checked });
                 },
             },
         ];
