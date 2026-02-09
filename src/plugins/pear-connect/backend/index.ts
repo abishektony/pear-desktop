@@ -1114,6 +1114,19 @@ class PearConnectClient {
             return;
         }
 
+        // Sync silent audio element to ensure native controls show correct Play/Pause state
+        if (this.audioElement) {
+            if (state.isPlaying) {
+                if (this.audioElement.paused) {
+                    this.audioElement.play().catch(e => console.error('[Pear Connect] Audio resume failed', e));
+                }
+            } else {
+                if (!this.audioElement.paused) {
+                    this.audioElement.pause();
+                }
+            }
+        }
+
         // Update metadata
         navigator.mediaSession.metadata = new MediaMetadata({
             title: state.trackInfo.title || 'Unknown Track',

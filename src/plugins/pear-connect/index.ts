@@ -573,20 +573,43 @@ export default createPlugin({
     getCurrentTrackInfo(this: any) {
       const titleElement = document.querySelector('.ytmusic-player-bar .title');
       const artistElement = document.querySelector('.ytmusic-player-bar .byline');
-      const thumbnailElement = document.querySelector<HTMLImageElement>('.ytmusic-player-bar img');
       const albumElement = document.querySelector('.ytmusic-player-bar .subtitle');
 
       const videoData = this.playerApi?.getVideoData();
       const videoId = videoData?.video_id;
 
-      let thumbnail = thumbnailElement?.src;
+      let thumbnail = '';
+
+      // 1. Try specific player bar image (highest priority)
+      const playerBarImage = document.querySelector<HTMLImageElement>('.ytmusic-player-bar .thumbnail-image-wrapper img');
+      if (playerBarImage && playerBarImage.src && !playerBarImage.src.startsWith('blob:') && !playerBarImage.src.startsWith('data:')) {
+        thumbnail = playerBarImage.src;
+      }
+
+      // 2. Try queue image (current item) - often available even if player bar is lagging
+      if (!thumbnail) {
+        const queueImage = document.querySelector<HTMLImageElement>('ytmusic-player-queue-item[selected] img, ytmusic-player-queue-item[play-button-state="playing"] img');
+        if (queueImage && queueImage.src && !queueImage.src.startsWith('blob:') && !queueImage.src.startsWith('data:')) {
+          thumbnail = queueImage.src;
+        }
+      }
+
+      // 3. Fallback to any image in player bar
+      if (!thumbnail) {
+        const anyImage = document.querySelector<HTMLImageElement>('.ytmusic-player-bar img');
+        if (anyImage && anyImage.src && !anyImage.src.startsWith('blob:') && !anyImage.src.startsWith('data:')) {
+          thumbnail = anyImage.src;
+        }
+      }
+
       if (thumbnail) {
         // Try to get higher quality image
         // Replace s60, w60-h60, etc with larger dimensions
         thumbnail = thumbnail.replace(/s\d+(-c-k)?/, 's512$1').replace(/w\d+-h\d+/, 'w512-h512');
       } else if (videoId) {
-        // Fallback to standard maxres if DOM image is missing
-        thumbnail = `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`;
+        // Fallback to standard sddefault (640x480) if DOM image is missing or invalid
+        // sddefault is more reliable than maxresdefault
+        thumbnail = `https://i.ytimg.com/vi/${videoId}/sddefault.jpg`;
       }
 
       return {
@@ -603,7 +626,7 @@ export default createPlugin({
       const queue: QueueItem[] = [];
       const queueItems = document.querySelectorAll('ytmusic-player-queue-item');
 
-      queueItems.forEach((item, idx) => {
+      queueItems.forEach((item) => {
         const titleEl = item.querySelector('.song-title');
         const artistEl = item.querySelector('.byline');
         const thumbnailEl = item.querySelector<HTMLImageElement>('img');
