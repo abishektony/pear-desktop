@@ -16,6 +16,7 @@ export default createPlugin({
         draggableEnabled: true,
         widescreenMode: true,
         crossfadeEnabled: false,
+        autoOpenOnSongChange: false,
     },
     stylesheets: [style],
     menu: async ({ getConfig, setConfig }) => {
@@ -88,6 +89,14 @@ export default createPlugin({
                 checked: config.crossfadeEnabled,
                 click(item) {
                     setConfig({ crossfadeEnabled: item.checked });
+                },
+            },
+            {
+                label: t('plugins.miniplayer.menu.auto-open-on-click'),
+                type: 'checkbox',
+                checked: config.autoOpenOnSongChange,
+                click(item) {
+                    setConfig({ autoOpenOnSongChange: item.checked });
                 },
             },
         ];

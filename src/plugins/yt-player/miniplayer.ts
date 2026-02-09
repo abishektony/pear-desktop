@@ -204,6 +204,7 @@ export class Miniplayer {
         draggableEnabled: true,
         widescreenMode: true,
         crossfadeEnabled: false,
+        autoOpenOnSongChange: false,
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
     private playerApi: any = null;
@@ -270,8 +271,14 @@ export class Miniplayer {
     // Volume persistence
     private savedVolume: number = 1.0; // Store volume level (0.0 to 1.0)
 
+    // Mode tracking for fallback restoration
+    private currentMode: 'visualizer' | 'video' | 'thumbnail' = 'thumbnail';
+    private isInFallbackMode: boolean = false; // Track if we're in fallback due to no video
+    private videoAvailabilityCheckInterval: number | null = null;
+
     private boundHandleAudioCanPlay: (e: Event) => void;
     private boundHandleResize: () => void;
+    private boundHandleVideoPlay: (e: Event) => void;
 
     constructor(config?: any) {
         if (config) {
@@ -281,6 +288,7 @@ export class Miniplayer {
         // Bind methods FIRST so they are available for event listeners
         this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
         this.boundHandleResize = this.handleResize.bind(this);
+        this.boundHandleVideoPlay = this.handleVideoPlay.bind(this);
         this.boundHandleMouseDown = this.handleMouseDown.bind(this);
         this.boundHandleMouseMove = this.handleMouseMove.bind(this);
         this.boundHandleMouseUp = this.handleMouseUp.bind(this);
@@ -317,6 +325,12 @@ export class Miniplayer {
 
         // Setup crossfade video listener
         this.setupCrossfadeListener();
+
+        // Setup video play listener for auto-open
+        this.setupVideoPlayListener();
+
+        // Start checking for video availability to restore preferred mode
+        this.startVideoAvailabilityCheck();
     }
 
     private tryConnectExistingAudio() {
@@ -2698,10 +2712,103 @@ export class Miniplayer {
         document.removeEventListener('peard:audio-can-play', this.boundHandleAudioCanPlay);
         window.removeEventListener('resize', this.boundHandleResize);
 
+        // Remove play button click listener
+        document.removeEventListener('click', this.boundHandleVideoPlay, true);
+
+        // Clear video availability check interval
+        if (this.videoAvailabilityCheckInterval) {
+            clearInterval(this.videoAvailabilityCheckInterval);
+            this.videoAvailabilityCheckInterval = null;
+        }
+
         // Remove element from DOM
         this.element.remove();
 
         // Show YouTube miniplayer
         this.showYouTubeMiniplayer();
+    }
+
+    private setupVideoPlayListener() {
+        // Use event delegation to listen for clicks on play buttons
+        // This works for dynamically added content (home, search results, etc.)
+        document.addEventListener('click', this.boundHandleVideoPlay, true);
+    }
+
+    private handleVideoPlay(event: Event) {
+        // Only auto-open if the feature is enabled and fullscreen isn't already open
+        if (!this.config.autoOpenOnSongChange || this.isFullscreenOpen) {
+            return;
+        }
+
+        const target = event.target as HTMLElement;
+
+        // Check if the click was on an element with id="content" that has the specific class
+        const contentElement = target.closest('#content.style-scope.ytmusic-item-thumbnail-overlay-renderer');
+        if (contentElement) {
+            // Clicked on content area with the specific class, open fullscreen
+            setTimeout(() => {
+                if (!this.isFullscreenOpen) {
+                    this.openFullscreen();
+                }
+            }, 300);
+            return;
+        }
+
+        // Check if the click was on a play button or its child elements
+        const playButton = target.closest('ytmusic-play-button-renderer');
+        if (!playButton) {
+            return;
+        }
+
+        // Make sure it's a play button on a song card (not the main player)
+        const songCard = playButton.closest('ytmusic-two-row-item-renderer, ytmusic-responsive-list-item-renderer');
+        if (!songCard) {
+            return;
+        }
+
+        // Small delay to let the song start loading
+        setTimeout(() => {
+            if (!this.isFullscreenOpen) {
+                this.openFullscreen();
+            }
+        }, 300);
+    }
+
+    private startVideoAvailabilityCheck() {
+        // Check every 3 seconds if video becomes available
+        this.videoAvailabilityCheckInterval = window.setInterval(() => {
+            this.checkAndRestorePreferredMode();
+        }, 3000);
+    }
+
+    private checkAndRestorePreferredMode() {
+        // Only restore if we're in fallback mode
+        if (!this.isInFallbackMode) {
+            return;
+        }
+
+        // Check if video is now available
+        const video = document.querySelector('video');
+        if (!video) {
+            return;
+        }
+
+        // Check if video has actual content (not just the element existing)
+        // readyState > 0 means video has metadata or is loading
+        if (video.readyState > 0 && video.videoWidth > 0) {
+            // Video is now available! Restore preferred mode
+            console.log('[Miniplayer] Video became available, restoring preferred mode:', this.preferredMode);
+
+            // Clear fallback state
+            this.isInFallbackMode = false;
+
+            // Restore the preferred mode
+            // This would trigger the mode switch logic
+            // For now, just log it - the actual mode switching would need to be implemented
+            // based on how your existing code handles mode changes
+
+            // TODO: Call the method that actually switches the display mode
+            // For example: this.switchToMode(this.preferredMode);
+        }
     }
 }

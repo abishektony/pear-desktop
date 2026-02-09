@@ -656,6 +656,7 @@
         "click-to-switch": "Click to Switch Mode",
         "draggable-enabled": "Draggable Miniplayer (>450px)",
         "widescreen-mode": "Widescreen Mode (Fullscreen)",
+        "auto-open-on-click": "Auto-open Player on Song Click",
         "visualizer-style": {
           "label": "Visualizer Style",
           "bars": "Bars",
