@@ -661,6 +661,12 @@
           "label": "Visualizer Style",
           "bars": "Bars",
           "wave": "Wave"
+        },
+        "background-visualizer": {
+          "label": "Background Visualizer",
+          "none": "None",
+          "butterchurn": "Butterchurn",
+          "sphere": "Dotted Sphere"
         }
       }
     },

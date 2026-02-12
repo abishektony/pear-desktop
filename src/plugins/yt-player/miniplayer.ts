@@ -1,4 +1,8 @@
 import { ElementFromHtml } from '@/plugins/utils/renderer';
+import Butterchurn from 'butterchurn';
+import ButterchurnPresets from 'butterchurn-presets';
+import { FastAverageColor } from 'fast-average-color';
+import Color from 'color';
 const miniplayerHTML = `
 <div class="pear-player-container">
   <div class="pear-miniplayer" id="pear-miniplayer">
@@ -24,9 +28,9 @@ const miniplayerHTML = `
   </div>
 
   <div class="pear-fullscreen-player" id="pear-fullscreen-player">
+    <canvas class="pear-fullscreen-visualizer-bg" id="pear-fullscreen-visualizer-bg"></canvas>
     <div class="pear-fullscreen-content">
       <div class="pear-fullscreen-media">
-        <canvas class="pear-fullscreen-visualizer-bg" id="pear-fullscreen-visualizer-bg"></canvas>
         <!-- Two layers for crossfade dissolve effect -->
         <div class="pear-fullscreen-thumbnail pear-thumb-layer" id="pear-fullscreen-thumb-bottom" style="overflow: hidden;"></div>
         <div class="pear-fullscreen-thumbnail pear-thumb-layer" id="pear-fullscreen-thumb-top" style="overflow: hidden;">
@@ -105,7 +109,7 @@ const miniplayerHTML = `
             </svg>
             <span class="pear-sleep-timer-badge" id="pear-sleep-timer-badge" style="display: none;"></span>
         </button>
-        </div>
+    </div>
         <button class="pear-fullscreen-btn queue-btn" id="pear-fullscreen-queue-btn" title="Toggle Queue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -195,7 +199,7 @@ export class Miniplayer {
     private analyser: AnalyserNode | null = null;
     private dataArray: Uint8Array | null = null;
     private isActive = false;
-    private config: {
+    private config = {
         enabled: false,
         visualizerEnabled: true,
         visualizerStyle: 'bars',
@@ -205,9 +209,17 @@ export class Miniplayer {
         widescreenMode: true,
         crossfadeEnabled: false,
         autoOpenOnSongChange: false,
+        backgroundVisualizer: 'butterchurn' as 'none' | 'butterchurn' | 'sphere',
     };
     private preferredMode: 'visualizer' | 'video' | 'thumbnail' = 'visualizer';
+
+    // Sphere Visualizer Properties
+    // Sphere Visualizer Properties
+    private spherePoints: { x: number, y: number, z: number }[] = [];
+    private sphereRotation = 0;
     private playerApi: any = null;
+    private butterchurnVisualizer: ReturnType<typeof Butterchurn.createVisualizer> | null = null;
+    private visualizerPresetCycleInterval: number | null = null;
 
     // Fullscreen player elements
     private fullscreenQueueButton: HTMLButtonElement | null = null;
@@ -234,7 +246,6 @@ export class Miniplayer {
     private fullscreenThumbnailElement: HTMLElement | null = null;
     private fullscreenThumbTop: HTMLElement | null = null;
     private fullscreenThumbBottom: HTMLElement | null = null;
-    private thumbTopActive: boolean = true; // Track which layer has the current image
     private fullscreenCanvas: HTMLCanvasElement | null = null;
     private fullscreenVisualizerBgCanvas: HTMLCanvasElement | null = null;
     private fullscreenCloseButton: HTMLButtonElement | null = null;
@@ -271,19 +282,32 @@ export class Miniplayer {
     // Volume persistence
     private savedVolume: number = 1.0; // Store volume level (0.0 to 1.0)
 
-    // Mode tracking for fallback restoration
-    private currentMode: 'visualizer' | 'video' | 'thumbnail' = 'thumbnail';
     private isInFallbackMode: boolean = false; // Track if we're in fallback due to no video
     private videoAvailabilityCheckInterval: number | null = null;
 
+    // Dragging properties
+    private dragStartX: number = 0;
+    private dragStartY: number = 0;
+    private miniplayerStartX: number = 0;
+    private miniplayerStartY: number = 0;
+    private isDragging: boolean = false;
+    private savedPosition: { x: number, y: number } | null = null;
+    private miniplayerElement: HTMLElement | null = null;
+
+    private fastAverageColor: FastAverageColor;
     private boundHandleAudioCanPlay: (e: Event) => void;
     private boundHandleResize: () => void;
     private boundHandleVideoPlay: (e: Event) => void;
+    private boundHandleMouseDown: (e: MouseEvent) => void;
+    private boundHandleMouseMove: (e: MouseEvent) => void;
+    private boundHandleMouseUp: (e: MouseEvent) => void;
 
     constructor(config?: any) {
         if (config) {
             this.config = { ...this.config, ...config };
         }
+
+        this.fastAverageColor = new FastAverageColor();
 
         // Bind methods FIRST so they are available for event listeners
         this.boundHandleAudioCanPlay = this.handleAudioCanPlay.bind(this);
@@ -353,6 +377,9 @@ export class Miniplayer {
                     const bufferLength = this.analyser.frequencyBinCount;
                     this.dataArray = new Uint8Array(bufferLength);
 
+                    // Initialize Background Visualizer with existing source
+                    this.initBackgroundVisualizer(existingSource);
+
                     console.log('[Miniplayer] Connected to existing audio context');
                 }
             }
@@ -378,14 +405,39 @@ export class Miniplayer {
 
                 const bufferLength = this.analyser.frequencyBinCount;
                 this.dataArray = new Uint8Array(bufferLength);
+
+                // Initialize Background Visualizer
+                this.initBackgroundVisualizer(source);
             } catch (err) {
                 console.error('[Miniplayer] Failed to connect audio source:', err);
             }
         }
     }
 
+
+
     setConfig(config: any) {
+        const oldBackgroundVisualizer = this.config.backgroundVisualizer;
         this.config = { ...this.config, ...config };
+
+        // Handle visualizer switch
+        if (this.config.backgroundVisualizer !== oldBackgroundVisualizer) {
+            // Clear canvas first
+            if (this.fullscreenVisualizerBgCanvas) {
+                const ctx = this.fullscreenVisualizerBgCanvas.getContext('2d');
+                ctx?.clearRect(0, 0, this.fullscreenVisualizerBgCanvas.width, this.fullscreenVisualizerBgCanvas.height);
+            }
+
+            // Cleanup previous visualizer
+            this.cleanupVisualizers();
+
+            // Re-init visualizer
+            const source = (window as any).__pearAudioSource;
+            if (source) {
+                this.initBackgroundVisualizer(source);
+            }
+        }
+
         // Update FFT size based on style if needed
         if (this.analyser) {
             if (this.config.visualizerStyle === 'wave') {
@@ -482,7 +534,7 @@ export class Miniplayer {
         };
 
         // Handle touch events (for touch screens and stylus)
-        button.addEventListener('touchend', (e) => {
+        button.addEventListener('touchend', () => {
             debouncedHandler();
         }, { passive: true });
 
@@ -549,7 +601,7 @@ export class Miniplayer {
             });
         }
         const clickableArea = this.element.querySelector('#pear-miniplayer-clickable');
-        clickableArea?.addEventListener('mousedown', this.boundHandleMouseDown);
+        clickableArea?.addEventListener('mousedown', (e) => this.boundHandleMouseDown(e as MouseEvent));
         clickableArea?.addEventListener('click', (e) => {
             console.log('[Miniplayer] Click detected on:', e.target);
 
@@ -874,11 +926,9 @@ export class Miniplayer {
 
         let finalX = this.miniplayerStartX + deltaX;
         let finalY = this.miniplayerStartY + deltaY;
-        let isSnapped = false;
 
         // Check if within snap zone
         if (Math.abs(finalX - centerX) < snapThreshold && Math.abs(finalY - bottomY) < snapThreshold) {
-            isSnapped = true;
             finalX = centerX;
             finalY = bottomY;
             this.miniplayerElement.classList.add('snapped');
@@ -1198,26 +1248,27 @@ export class Miniplayer {
                 this.drawWaveVisualizer();
                 if (this.isFullscreenOpen) {
                     this.drawWaveVisualizerFullscreen();
-                    this.drawVisualizerBackground();
+                    this.renderButterchurn();
                 }
             } else {
                 this.drawSelfVisualizer();
                 if (this.isFullscreenOpen) {
                     this.drawSelfVisualizerFullscreen();
-                    this.drawVisualizerBackground();
+                    this.renderBackgroundVisualizer();
                 }
             }
         } else if (modeToShow === 'video' && video) {
             this.drawToCanvas(video);
             if (this.isFullscreenOpen) {
                 this.drawToCanvasFullscreen(video);
-                if (this.analyser) this.drawVisualizerBackground();
+                // Still render butterchurn if audio is available, for background ambiance
+                if (this.analyser) this.renderBackgroundVisualizer();
             }
         } else {
             this.clearCanvas();
             if (this.isFullscreenOpen) {
                 this.clearCanvasFullscreen();
-                if (this.analyser) this.drawVisualizerBackground();
+                if (this.analyser) this.renderBackgroundVisualizer();
             }
         }
     }
@@ -1507,83 +1558,216 @@ export class Miniplayer {
         }
     }
 
-    // Draw cloud-like wave visualizer behind the image
-    private drawVisualizerBackground() {
-        if (!this.fullscreenVisualizerBgCanvas || !this.analyser || !this.dataArray) return;
+    // Dispatch background visualizer
+    private renderBackgroundVisualizer() {
+        if (!this.config.backgroundVisualizer || this.config.backgroundVisualizer === 'none') return;
 
-        // console.log('[Visualizer] Drawing, canvas:', this.fullscreenVisualizerBgCanvas, 'analyser:', this.analyser, 'dataArray:', this.dataArray);
-        const canvas = this.fullscreenVisualizerBgCanvas;
-        const ctx = canvas.getContext('2d');
+        if (this.config.backgroundVisualizer === 'butterchurn') {
+            this.renderButterchurn();
+        } else if (this.config.backgroundVisualizer === 'sphere') {
+            this.renderSphereVisualizer();
+        }
+    }
+
+    // Draw Butterchurn visualizer
+    private renderButterchurn() {
+        if (this.config.backgroundVisualizer !== 'butterchurn' || !this.butterchurnVisualizer || !this.fullscreenVisualizerBgCanvas) return;
+
+        // Ensure canvas size is correct
+        const width = this.fullscreenVisualizerBgCanvas.clientWidth || 800;
+        const height = this.fullscreenVisualizerBgCanvas.clientHeight || 800;
+
+        if (this.fullscreenVisualizerBgCanvas.width !== width || this.fullscreenVisualizerBgCanvas.height !== height) {
+            this.fullscreenVisualizerBgCanvas.width = width;
+            this.fullscreenVisualizerBgCanvas.height = height;
+            this.butterchurnVisualizer.setRendererSize(width, height);
+        }
+
+        this.butterchurnVisualizer.render();
+    }
+
+    private initBackgroundVisualizer(source: any) {
+        if (!this.config.backgroundVisualizer || this.config.backgroundVisualizer === 'none') return;
+
+        if (this.config.backgroundVisualizer === 'butterchurn') {
+            this.initButterchurnWithSource(source);
+        } else if (this.config.backgroundVisualizer === 'sphere') {
+            this.initSphereVisualizer();
+        }
+    }
+
+    private initButterchurnWithSource(source: any) {
+        if (this.config.backgroundVisualizer !== 'butterchurn' || !this.audioContext || !this.fullscreenVisualizerBgCanvas) return;
+
+        // Prevent double init
+        if (this.butterchurnVisualizer) return;
+
+        // Dim the canvas for butterchurn to improve text visibility
+        if (this.fullscreenVisualizerBgCanvas) {
+            this.fullscreenVisualizerBgCanvas.style.opacity = '0.5';
+        }
+
+        try {
+            this.butterchurnVisualizer = Butterchurn.createVisualizer(this.audioContext, this.fullscreenVisualizerBgCanvas, {
+                width: this.fullscreenVisualizerBgCanvas.width,
+                height: this.fullscreenVisualizerBgCanvas.height,
+                pixelRatio: window.devicePixelRatio || 1,
+                textureRatio: 1,
+            } as any);
+
+            this.butterchurnVisualizer.connectAudio(source);
+
+            // Load a preset
+            const presets = ButterchurnPresets;
+            const presetKeys = Object.keys(presets);
+            if (presetKeys.length > 0) {
+                // Pick a random start preset
+                const randomPreset = presetKeys[Math.floor(Math.random() * presetKeys.length)];
+                this.butterchurnVisualizer.loadPreset(presets[randomPreset], 0);
+
+                // Cycle presets every 15 seconds
+                if (this.visualizerPresetCycleInterval) clearInterval(this.visualizerPresetCycleInterval);
+                this.visualizerPresetCycleInterval = window.setInterval(() => {
+                    const nextPreset = presetKeys[Math.floor(Math.random() * presetKeys.length)];
+                    this.butterchurnVisualizer?.loadPreset(presets[nextPreset], 2.0); // 2s blend
+                }, 15000); // 15 seconds
+            }
+
+            console.log('[Miniplayer] Butterchurn initialized');
+        } catch (e) {
+            console.error('[Miniplayer] Failed to initialize Butterchurn:', e);
+        }
+    }
+
+    private cleanupVisualizers() {
+        // Cleanup Butterchurn
+        if (this.butterchurnVisualizer) {
+            // There isn't a destroy method in butterchurn docs easily accessible, but we can stop rendering loops
+            // and set to null. 
+            // Ideally calling connectAudio(null) if supported or just dropping reference.
+            this.butterchurnVisualizer = null;
+        }
+
+        if (this.visualizerPresetCycleInterval) {
+            clearInterval(this.visualizerPresetCycleInterval);
+            this.visualizerPresetCycleInterval = null;
+        }
+    }
+
+    private initSphereVisualizer() {
+        // Reset opacity for sphere (it has its own transparency)
+        if (this.fullscreenVisualizerBgCanvas) {
+            this.fullscreenVisualizerBgCanvas.style.opacity = '1';
+        }
+
+        // Generate points on a sphere
+        this.spherePoints = [];
+        const numPoints = 800; // Dotted
+        for (let i = 0; i < numPoints; i++) {
+            const theta = Math.acos(-1 + (2 * i) / numPoints);
+            const phi = Math.sqrt(numPoints * Math.PI) * theta;
+            this.spherePoints.push({
+                x: Math.cos(phi) * Math.sin(theta),
+                y: Math.sin(phi) * Math.sin(theta),
+                z: Math.cos(theta)
+            });
+        }
+    }
+
+    private renderSphereVisualizer() {
+        if (!this.fullscreenVisualizerBgCanvas || !this.analyser || !this.dataArray) return;
+        const ctx = this.fullscreenVisualizerBgCanvas.getContext('2d');
         if (!ctx) return;
 
-        // Set canvas size - increased to 800 for larger waves
-        if (canvas.width !== 800 || canvas.height !== 800) {
-            canvas.width = 800;
-            canvas.height = 800;
+        // Ensure canvas size
+        const width = this.fullscreenVisualizerBgCanvas.clientWidth || 800;
+        const height = this.fullscreenVisualizerBgCanvas.clientHeight || 800;
+        if (this.fullscreenVisualizerBgCanvas.width !== width || this.fullscreenVisualizerBgCanvas.height !== height) {
+            this.fullscreenVisualizerBgCanvas.width = width;
+            this.fullscreenVisualizerBgCanvas.height = height;
         }
 
-        // Get frequency data
-        this.analyser.getByteFrequencyData(this.dataArray as any);
+        // Get audio data for "expanding" effect
+        // Get audio data for "expanding" effect
+        let scale = 1;
+        if (this.dataArray) {
+            this.analyser.getByteFrequencyData(this.dataArray as any);
+            // Calculate bass energy (low frequencies)
+            let bass = 0;
+            for (let i = 0; i < 10; i++) {
+                bass += this.dataArray[i];
+            }
+            bass = bass / 10;
+            scale = 1 + (bass / 255) * 0.5; // Scale from 1.0 to 1.5
+        }
 
-        // Clear canvas
-        ctx.clearRect(0, 0, 800, 800);
+        ctx.clearRect(0, 0, width, height);
 
-        const centerX = 400;
-        const centerY = 400;
-        const waveCount = 8; // Number of wave petals
+        // Save context state because we modify filter externally for color, 
+        // but drawing logic assumes standard composite operations usually.
+        // The external filter (sepia/hue-rotate) applies to the canvas element, not the context drawing directly.
 
-        // Draw multiple wave layers with different colors
-        for (let layer = 0; layer < 3; layer++) {
-            for (let i = 0; i < waveCount; i++) {
-                const angle = (i / waveCount) * Math.PI * 2;
-                const freqIndex = Math.floor((i / waveCount) * this.dataArray.length);
-                // Increased amplitude and base size to extend beyond thumbnail
-                // Thumbnail is ~350px wide (175px radius), so we need > 250px to be clearly visible
-                const amplitude = (this.dataArray[freqIndex] / 255) * 200 + 100;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // White dots, colorized by CSS filter
 
-                // Create gradient for each wave
-                const gradient = ctx.createRadialGradient(
-                    centerX, centerY, 0,
-                    centerX, centerY, amplitude + layer * 40
-                );
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.min(width, height) * 1 * scale;
 
-                if (layer === 0) {
-                    gradient.addColorStop(0, 'rgba(38, 95, 156, 0.1)');
-                    gradient.addColorStop(0.5, 'rgba(52, 132, 236, 0.8)');
-                    gradient.addColorStop(1, 'rgba(38, 95, 156, 0.1)');
-                } else if (layer === 1) {
-                    gradient.addColorStop(0, 'rgba(32, 81, 197, 0.1)');
-                    gradient.addColorStop(0.5, 'rgba(13, 60, 146, 0.8)');
-                    gradient.addColorStop(1, 'rgba(32, 57, 151, 0.1)');
-                } else {
-                    gradient.addColorStop(0, 'rgba(30, 144, 255, 0.1)');
-                    gradient.addColorStop(0.5, 'rgba(30, 144, 255, 0.8)');
-                    gradient.addColorStop(1, 'rgba(30, 144, 255, 0.1)');
-                }
+        this.sphereRotation += 0.005; // Auto rotate
 
-                ctx.fillStyle = gradient;
-                ctx.filter = 'blur(30px)';
+        this.spherePoints.forEach(p => {
+            // Rotate Y
+            const x1 = p.x * Math.cos(this.sphereRotation) - p.z * Math.sin(this.sphereRotation);
+            const z1 = p.z * Math.cos(this.sphereRotation) + p.x * Math.sin(this.sphereRotation);
+            const y1 = p.y;
 
-                // Draw wave petal
-                ctx.beginPath();
-                for (let j = 0; j <= 50; j++) {
-                    const t = (j / 50) * Math.PI * 0.5;
-                    const r = amplitude + layer * 40 + Math.sin(t * 4) * 30;
-                    const x = centerX + Math.cos(angle + t) * r;
-                    const y = centerY + Math.sin(angle + t) * r;
+            // Rotate X (tilted)
+            const tilt = 0.5;
+            const y2 = y1 * Math.cos(tilt) - z1 * Math.sin(tilt);
+            const z2 = z1 * Math.cos(tilt) + y1 * Math.sin(tilt);
+            const x2 = x1;
 
-                    if (j === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.closePath();
-                ctx.fill();
+            // Project 3D to 2D
+            // Simple perspective projection
+            const zOffset = 2;
+            const perspective = 1 / (zOffset + z2);
+
+            const x2d = centerX + x2 * radius * perspective;
+            const y2d = centerY + y2 * radius * perspective;
+
+            // Draw dot
+            // Size depends on Z (closer = bigger)
+            const size = Math.max(2, 5 * perspective);
+
+            ctx.beginPath();
+            ctx.arc(x2d, y2d, size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    private async extractAndApplyColor(imageUrl: string) {
+        if (!imageUrl || !this.fullscreenVisualizerBgCanvas) return;
+
+        try {
+            const color = await this.fastAverageColor.getColorAsync(imageUrl);
+            if (color) {
+                const c = Color(color.hex);
+                // Calculate hue rotation relative to sepia(1) which is approx hue 50
+                // We want to shift from ~50deg to the target hue
+                const hue = c.hue();
+                const rotate = hue - 40; // 40-50 is sepia base
+
+                this.fullscreenVisualizerBgCanvas.style.filter = `sepia(1) hue-rotate(${rotate}deg) saturate(3) brightness(0.7)`;
+                this.fullscreenVisualizerBgCanvas.style.mixBlendMode = 'screen';
+            }
+        } catch (e) {
+            console.error('[Miniplayer] Failed to extract color:', e);
+            // Fallback
+            if (this.fullscreenVisualizerBgCanvas) {
+                this.fullscreenVisualizerBgCanvas.style.filter = 'none';
+                this.fullscreenVisualizerBgCanvas.style.mixBlendMode = 'screen';
             }
         }
-
-        ctx.filter = 'none';
     }
 
 
@@ -1605,6 +1789,9 @@ export class Miniplayer {
         if (thumbnailSrc && this.fullscreenPlayer) {
             // Set CSS variable for the background
             this.fullscreenPlayer.style.setProperty('--bg-image', `url("${thumbnailSrc}")`);
+
+            // Extract and apply color
+            this.extractAndApplyColor(thumbnailSrc);
         }
 
         // Sync current state to fullscreen player
@@ -1641,6 +1828,8 @@ export class Miniplayer {
             if (this.fullscreenThumbnailElement) {
                 if (thumbnailCandidate) {
                     this.verifyAndSetFullscreenImage(thumbnailCandidate);
+                    this.fullscreenPlayer?.style.setProperty('--bg-image', `url("${thumbnailCandidate}")`);
+                    this.extractAndApplyColor(thumbnailCandidate);
                 } else {
                     this.fullscreenThumbnailElement.style.backgroundImage = '';
                 }

@@ -17,6 +17,7 @@ export default createPlugin({
         widescreenMode: true,
         crossfadeEnabled: false,
         autoOpenOnSongChange: false,
+        backgroundVisualizer: 'butterchurn', // 'none' | 'butterchurn' | 'sphere'
     },
     stylesheets: [style],
     menu: async ({ getConfig, setConfig }) => {
@@ -98,6 +99,35 @@ export default createPlugin({
                 click(item) {
                     setConfig({ autoOpenOnSongChange: item.checked });
                 },
+            },
+            {
+                label: t('plugins.miniplayer.menu.background-visualizer.label'),
+                submenu: [
+                    {
+                        label: t('plugins.miniplayer.menu.background-visualizer.none'),
+                        type: 'radio',
+                        checked: config.backgroundVisualizer === 'none',
+                        click() {
+                            setConfig({ backgroundVisualizer: 'none' });
+                        },
+                    },
+                    {
+                        label: t('plugins.miniplayer.menu.background-visualizer.butterchurn'),
+                        type: 'radio',
+                        checked: config.backgroundVisualizer === 'butterchurn',
+                        click() {
+                            setConfig({ backgroundVisualizer: 'butterchurn' });
+                        },
+                    },
+                    {
+                        label: t('plugins.miniplayer.menu.background-visualizer.sphere'),
+                        type: 'radio',
+                        checked: config.backgroundVisualizer === 'sphere',
+                        click() {
+                            setConfig({ backgroundVisualizer: 'sphere' });
+                        },
+                    },
+                ],
             },
         ];
     },
