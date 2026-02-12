@@ -29,7 +29,8 @@ const miniplayerHTML = `
 
   <div class="pear-fullscreen-player" id="pear-fullscreen-player">
     <canvas class="pear-fullscreen-visualizer-bg" id="pear-fullscreen-visualizer-bg"></canvas>
-    <div class="pear-fullscreen-content">
+    <div class="pear-visualizer-overlay" id="pear-visualizer-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(8px); background: rgba(0,0,0,0.2);"></div>
+    <div class="pear-fullscreen-content" style="position: relative; z-index: 10;">
       <div class="pear-fullscreen-media">
         <!-- Two layers for crossfade dissolve effect -->
         <div class="pear-fullscreen-thumbnail pear-thumb-layer" id="pear-fullscreen-thumb-bottom" style="overflow: hidden;"></div>
@@ -1602,9 +1603,11 @@ export class Miniplayer {
         // Prevent double init
         if (this.butterchurnVisualizer) return;
 
-        // Dim the canvas for butterchurn to improve text visibility
+        // Apply filters directly to canvas - REVERTED, using overlay
         if (this.fullscreenVisualizerBgCanvas) {
-            this.fullscreenVisualizerBgCanvas.style.opacity = '0.5';
+            this.fullscreenVisualizerBgCanvas.style.opacity = '1';
+            this.fullscreenVisualizerBgCanvas.style.filter = 'none';
+            this.fullscreenVisualizerBgCanvas.style.transform = 'none';
         }
 
         try {
@@ -1652,12 +1655,17 @@ export class Miniplayer {
             clearInterval(this.visualizerPresetCycleInterval);
             this.visualizerPresetCycleInterval = null;
         }
+
+        // Reset overlay
+        // if (this.visualizerOverlay) ... removed
     }
 
     private initSphereVisualizer() {
-        // Reset opacity for sphere (it has its own transparency)
+        // Apply filters to sphere as well - REVERTED, using overlay
         if (this.fullscreenVisualizerBgCanvas) {
             this.fullscreenVisualizerBgCanvas.style.opacity = '1';
+            this.fullscreenVisualizerBgCanvas.style.filter = 'none';
+            this.fullscreenVisualizerBgCanvas.style.transform = 'none';
         }
 
         // Generate points on a sphere
@@ -1713,7 +1721,19 @@ export class Miniplayer {
         const centerY = height / 2;
         const radius = Math.min(width, height) * 1 * scale;
 
-        this.sphereRotation += 0.005; // Auto rotate
+        // Calculate dynamic rotation speed based on bass
+        // Base speed = 0.002, Max added speed = 0.02
+        let rotationSpeed = 0.002;
+        if (this.dataArray) {
+            let bass = 0;
+            for (let i = 0; i < 10; i++) {
+                bass += this.dataArray[i];
+            }
+            bass = bass / 10;
+            rotationSpeed += (bass / 255) * 0.012;
+        }
+
+        this.sphereRotation += rotationSpeed;
 
         this.spherePoints.forEach(p => {
             // Rotate Y
@@ -1752,20 +1772,60 @@ export class Miniplayer {
             const color = await this.fastAverageColor.getColorAsync(imageUrl);
             if (color) {
                 const c = Color(color.hex);
+
+                // Get a vibrant/light version for text/accent
+                // Ensure it's not too dark for the black background
+                let accent = c.lighten(0.3).saturate(0.5);
+                if (accent.isDark()) {
+                    accent = accent.lighten(0.5);
+                }
+                const accentHex = accent.hex();
+
+                // Apply to fullscreen player CSS variable
+                if (this.fullscreenPlayer) {
+                    this.fullscreenPlayer.style.setProperty('--pear-fullscreen-accent', accentHex);
+                    // Also consistent track color for specific elements if needed
+                }
+
                 // Calculate hue rotation relative to sepia(1) which is approx hue 50
                 // We want to shift from ~50deg to the target hue
                 const hue = c.hue();
                 const rotate = hue - 40; // 40-50 is sepia base
 
-                this.fullscreenVisualizerBgCanvas.style.filter = `sepia(1) hue-rotate(${rotate}deg) saturate(3) brightness(0.7)`;
+                // Apply filter to visualizer (if using canvas filter approach)
+                // But currently we use CSS filter on canvas directly in init loop
+                // We can update the canvas filter here dynamically if we really want strict color matching?
+                // The current hardcoded filter in initSphereVisualizer is 'blur(5px) brightness(0.6)'
+                // The previous code had sepia/hue-rotate logic here.
+                // If we want the Sphere/Butterchurn to be TINTED by the song color, we should keep the hue-rotate logic
+                // But apply it alongside the blur.
+
+                // Construct the filter string with dynamic color + static blur/brightness
+                // The user asked for "darker image color" for text.
+                // Text is handled by --pear-fullscreen-accent.
+
+                // For the visualizer itself, do we want to tint it?
+                // The current code in initSphereVisualizer sets: 
+                // filter: 'blur(5px) brightness(0.6)'
+                // That overrides any sepia/hue-rotate set here.
+                // To support both, we should update the filter here to include the color shift
+
+                // For Sphere (white dots), tinting helps.
+                // For Butterchurn (colorful), tinting might be weird but okay.
+                // Let's adding sepia/hue-rotate BEFORE blur/brightness
+
+                this.fullscreenVisualizerBgCanvas.style.filter = `blur(5px) brightness(0.6) sepia(1) hue-rotate(${rotate}deg) saturate(3)`;
                 this.fullscreenVisualizerBgCanvas.style.mixBlendMode = 'screen';
             }
         } catch (e) {
             console.error('[Miniplayer] Failed to extract color:', e);
             // Fallback
+            if (this.fullscreenPlayer) {
+                this.fullscreenPlayer.style.setProperty('--pear-fullscreen-accent', '#1e90ff');
+            }
             if (this.fullscreenVisualizerBgCanvas) {
-                this.fullscreenVisualizerBgCanvas.style.filter = 'none';
-                this.fullscreenVisualizerBgCanvas.style.mixBlendMode = 'screen';
+                this.fullscreenVisualizerBgCanvas.style.filter = 'blur(5px) brightness(0.6)';
+                this.fullscreenVisualizerBgCanvas.style.mixBlendMode = 'normal';
             }
         }
     }

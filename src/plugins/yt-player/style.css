@@ -358,7 +358,7 @@
 .pear-fullscreen-title {
     font-size: 24px;
     font-weight: 700;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     margin-bottom: 8px;
     white-space: nowrap;
     overflow: hidden;
@@ -367,7 +367,7 @@
 
 .pear-fullscreen-artist {
     font-size: 18px;
-    color: #4da6ff;
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -377,7 +377,7 @@
     width: 100%;
     max-width: 500px;
     height: 6px;
-    background: rgba(77, 166, 255, 0.3);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), transparent 70%);
     border-radius: 3px;
     position: relative;
     cursor: pointer;
@@ -395,10 +395,10 @@
     left: 0;
     top: 0;
     height: 100%;
-    background: linear-gradient(90deg, #1e90ff 0%, #4da6ff 100%);
+    background: var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 3px;
     transition: width 0.1s linear;
-    box-shadow: 0 0 8px rgba(30, 144, 255, 0.6);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 40%);
 }
 
 .pear-fullscreen-controls {
@@ -410,9 +410,9 @@
 }
 
 .pear-fullscreen-btn {
-    background: rgba(30, 144, 255, 0.1);
-    color: #1e90ff;
-    border: 2px solid #1e90ff;
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
+    color: var(--pear-fullscreen-accent, #1e90ff);
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
     width: 50px;
     height: 50px;
     border-radius: 50%;
@@ -430,10 +430,10 @@
 }
 
 .pear-fullscreen-btn:hover {
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
     transform: scale(1.1);
-    box-shadow: 0 4px 16px rgba(30, 144, 255, 0.5);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
 }
 
 .pear-fullscreen-btn:active {
@@ -444,19 +444,19 @@
     width: 60px;
     height: 60px;
     font-size: 24px;
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
 .pear-fullscreen-btn.play:hover {
-    background: #4da6ff;
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), white 20%);
     transform: scale(1.15);
 }
 
 /* Active states for like and repeat buttons */
 #pear-fullscreen-like.active,
 #pear-fullscreen-repeat.active {
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
@@ -504,7 +504,7 @@
     appearance: none;
     width: 150px;
     height: 6px;
-    background: rgba(77, 166, 255, 0.3);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), transparent 70%);
     border-radius: 3px;
     outline: none;
     cursor: pointer;
@@ -515,21 +515,21 @@
     appearance: none;
     width: 16px;
     height: 16px;
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 0 8px rgba(30, 144, 255, 0.6);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 40%);
 }
 
 .pear-fullscreen-volume-slider::-webkit-slider-thumb:hover {
     transform: scale(1.2);
-    background: #4da6ff;
+    background: var(--pear-fullscreen-accent, #4da6ff);
 }
 
 .pear-fullscreen-volume-slider::-moz-range-thumb {
     height: 16px;
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -545,9 +545,9 @@
 .pear-fullscreen-close {
     position: relative;
     margin-top: 0;
-    background: rgba(30, 144, 255, 0.1);
-    color: #1e90ff;
-    border: 2px solid #1e90ff;
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
+    color: var(--pear-fullscreen-accent, #1e90ff);
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
     width: 50px;
     height: 40px;
     border-radius: 50%;
@@ -576,7 +576,7 @@
 }
 
 .pear-fullscreen-volume-value {
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 14px;
     font-weight: 600;
     min-width: 45px;
@@ -718,7 +718,7 @@
     z-index: 10003;
     display: none;
     overflow-y: auto;
-    border-left: 1px solid #1e90ff;
+    border-left: 1px solid var(--pear-fullscreen-accent, #1e90ff);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -777,7 +777,7 @@
 }
 
 .pear-fullscreen-btn.lyrics-btn.active {
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
@@ -786,16 +786,16 @@
 }
 
 .pear-fullscreen-lyrics-content::-webkit-scrollbar-track {
-    background: rgba(30, 144, 255, 0.1);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
 }
 
 .pear-fullscreen-lyrics-content::-webkit-scrollbar-thumb {
-    background: rgba(30, 144, 255, 0.5);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
     border-radius: 4px;
 }
 
 .pear-fullscreen-lyrics-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(30, 144, 255, 0.7);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 30%);
 }
 
 /* Compact current lyric display for bottom mode */
@@ -808,11 +808,11 @@
     margin: 0 auto 20px auto;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid #1e90ff;
+    border: 1px solid var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 12px;
     padding: 12px 24px;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(30, 144, 255, 0.4);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 60%);
     opacity: 0;
     max-height: 0;
     overflow: hidden;
@@ -839,7 +839,7 @@
 }
 
 .pear-fullscreen-current-lyric-text {
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
@@ -914,7 +914,7 @@
 .lyric-line-main {
     font-size: 16px;
     font-weight: 600;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     text-align: center;
     width: 100%;
 }
@@ -922,7 +922,7 @@
 .lyric-line-romanization {
     font-size: 14px;
     font-weight: 400;
-    color: rgba(30, 144, 255, 0.7);
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 30%);
     margin-top: 4px;
     text-align: center;
     width: 100%;
@@ -932,7 +932,7 @@
 .lyric-word {
     display: inline-block;
     animation: wordWave 2s ease-in-out infinite;
-    text-shadow: 0 0 10px rgba(30, 144, 255, 0.5);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
 }
 
 /* Music symbol centering */
@@ -947,12 +947,12 @@
     0%,
     100% {
         transform: translateY(0) scale(1);
-        text-shadow: 0 0 10px rgba(30, 144, 255, 0.5);
+        text-shadow: 0 0 10px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
     }
 
     50% {
         transform: translateY(-3px) scale(1.05);
-        text-shadow: 0 0 20px rgba(30, 144, 255, 1);
+        text-shadow: 0 0 20px var(--pear-fullscreen-accent, #1e90ff);
     }
 }
 
@@ -980,7 +980,7 @@
     z-index: 10003;
     display: none;
     overflow-y: auto;
-    border-right: 1px solid #1e90ff;
+    border-right: 1px solid var(--pear-fullscreen-accent, #1e90ff);
     /* Right border instead of left */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1030,13 +1030,13 @@
 
 .pear-fullscreen-queue-header {
     padding: 20px;
-    border-bottom: 1px solid rgba(30, 144, 255, 0.3);
+    border-bottom: 1px solid color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 70%);
     padding-top: 50px;
 }
 
 .pear-fullscreen-queue-header h3 {
     margin: 0;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 20px;
 }
 
@@ -1047,7 +1047,7 @@
 }
 
 .pear-fullscreen-btn.queue-btn.active {
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
@@ -1064,12 +1064,12 @@
 }
 
 .pear-queue-item:hover {
-    background: rgba(30, 144, 255, 0.1);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
 }
 
 .pear-queue-item.playing {
-    background: rgba(30, 144, 255, 0.2);
-    border: 1px solid rgba(30, 144, 255, 0.5);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 80%);
+    border: 1px solid color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
 }
 
 .pear-queue-item-thumb {
@@ -1263,10 +1263,10 @@
     left: 0;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
-    border: 1px solid #1e90ff;
+    border: 1px solid var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 6px;
     padding: 6px 10px;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
@@ -1285,7 +1285,7 @@
     left: 50%;
     transform: translateX(-50%);
     border: 5px solid transparent;
-    border-top-color: #1e90ff;
+    border-top-color: var(--pear-fullscreen-accent, #1e90ff);
 }
 
 .pear-miniplayer-seek:hover .pear-seek-preview,
@@ -1318,24 +1318,24 @@
 
 .pear-sleep-timer-content {
     background: linear-gradient(135deg, #0a0a0a 0%, #111 100%);
-    border: 2px solid #1e90ff;
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 20px;
     padding: 30px;
     max-width: 350px;
     width: 90%;
     text-align: center;
-    box-shadow: 0 8px 32px rgba(30, 144, 255, 0.4);
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 60%);
 }
 
 .pear-sleep-timer-title {
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 22px;
     font-weight: 700;
     margin-bottom: 8px;
 }
 
 .pear-sleep-timer-subtitle {
-    color: #4da6ff;
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     font-size: 14px;
     margin-bottom: 24px;
     opacity: 0.8;
@@ -1349,11 +1349,11 @@
 }
 
 .pear-sleep-timer-option {
-    background: rgba(30, 144, 255, 0.1);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
     border: 2px solid transparent;
     border-radius: 12px;
     padding: 14px 8px;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -1361,14 +1361,14 @@
 }
 
 .pear-sleep-timer-option:hover {
-    border-color: #1e90ff;
-    background: rgba(30, 144, 255, 0.2);
+    border-color: var(--pear-fullscreen-accent, #1e90ff);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 80%);
     transform: scale(1.05);
 }
 
 .pear-sleep-timer-option.selected {
-    border-color: #1e90ff;
-    background: #1e90ff;
+    border-color: var(--pear-fullscreen-accent, #1e90ff);
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
@@ -1382,11 +1382,11 @@
 
 .pear-sleep-timer-custom input {
     width: 70px;
-    background: rgba(30, 144, 255, 0.1);
-    border: 2px solid #1e90ff;
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
     border-radius: 8px;
     padding: 10px;
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
     font-size: 16px;
     font-weight: 600;
     text-align: center;
@@ -1394,12 +1394,12 @@
 }
 
 .pear-sleep-timer-custom input:focus {
-    background: rgba(30, 144, 255, 0.2);
-    box-shadow: 0 0 12px rgba(30, 144, 255, 0.4);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 80%);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 60%);
 }
 
 .pear-sleep-timer-custom span {
-    color: #4da6ff;
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     font-size: 14px;
 }
 
@@ -1420,25 +1420,25 @@
 }
 
 .pear-sleep-timer-btn.primary {
-    background: #1e90ff;
-    border: 2px solid #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
 .pear-sleep-timer-btn.primary:hover {
-    background: #4da6ff;
-    border-color: #4da6ff;
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
+    border-color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     transform: scale(1.02);
 }
 
 .pear-sleep-timer-btn.secondary {
     background: transparent;
-    border: 2px solid #1e90ff;
-    color: #1e90ff;
+    border: 2px solid var(--pear-fullscreen-accent, #1e90ff);
+    color: var(--pear-fullscreen-accent, #1e90ff);
 }
 
 .pear-sleep-timer-btn.secondary:hover {
-    background: rgba(30, 144, 255, 0.1);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 90%);
 }
 
 .pear-sleep-timer-btn.cancel {
@@ -1456,7 +1456,7 @@
     position: absolute;
     top: -8px;
     right: -8px;
-    background: linear-gradient(135deg, #1e90ff 0%, #4da6ff 100%);
+    background: linear-gradient(135deg, var(--pear-fullscreen-accent, #1e90ff) 0%, color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%) 100%);
     color: #000;
     font-size: 10px;
     font-weight: 700;
@@ -1464,7 +1464,7 @@
     border-radius: 10px;
     min-width: 20px;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(30, 144, 255, 0.5);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
     animation: pulse-badge 2s ease-in-out infinite;
 }
 
@@ -1473,12 +1473,12 @@
     0%,
     100% {
         transform: scale(1);
-        box-shadow: 0 2px 8px rgba(30, 144, 255, 0.5);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 50%);
     }
 
     50% {
         transform: scale(1.1);
-        box-shadow: 0 2px 12px rgba(30, 144, 255, 0.7);
+        box-shadow: 0 2px 12px color-mix(in srgb, var(--pear-fullscreen-accent, #1e90ff), transparent 30%);
     }
 }
 
@@ -1489,7 +1489,7 @@
 
 /* Crossfade indicator on button when enabled */
 .pear-fullscreen-btn.crossfade-active {
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     color: #000;
 }
 
@@ -1504,7 +1504,7 @@
     width: 100px;
     height: 6px;
     -webkit-appearance: none;
-    background: rgba(30, 144, 255, 0.3);
+    background: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), transparent 70%);
     border-radius: 3px;
     cursor: pointer;
 }
@@ -1514,7 +1514,7 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #1e90ff;
+    background: var(--pear-fullscreen-accent, #1e90ff);
     cursor: pointer;
     transition: transform 0.2s;
 }
@@ -1524,7 +1524,7 @@
 }
 
 .pear-fullscreen-volume-value {
-    color: #4da6ff;
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     font-size: 12px;
     min-width: 40px;
     text-align: center;
@@ -1537,7 +1537,7 @@
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
-    border: 1px solid #1e90ff;
+    border: 1px solid var(--pear-fullscreen-accent, #1e90ff);
     color: #fff;
     padding: 4px 8px;
     border-radius: 6px;
@@ -1592,19 +1592,19 @@
     align-items: center;
     gap: 10px;
     cursor: pointer;
-    color: #4da6ff;
+    color: color-mix(in srgb, var(--pear-fullscreen-accent, #4da6ff), white 20%);
     font-size: 14px;
 }
 
 .pear-sleep-timer-wait-toggle input[type="checkbox"] {
     width: 18px;
     height: 18px;
-    accent-color: #1e90ff;
+    accent-color: var(--pear-fullscreen-accent, #1e90ff);
     cursor: pointer;
 }
 
 .pear-sleep-timer-wait-toggle input[type="checkbox"]:checked+span {
-    color: #1e90ff;
+    color: var(--pear-fullscreen-accent, #1e90ff);
 }
 
 /* ===== Album Art Crossfade ===== */
