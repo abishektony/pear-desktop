@@ -3,6 +3,7 @@ import Butterchurn from 'butterchurn';
 import ButterchurnPresets from 'butterchurn-presets';
 import { FastAverageColor } from 'fast-average-color';
 import Color from 'color';
+import { ImmersivePlayer } from './immersive-player';
 const miniplayerHTML = `
 <div class="pear-player-container">
   <div class="pear-miniplayer" id="pear-miniplayer">
@@ -119,6 +120,13 @@ const miniplayerHTML = `
                 <line x1="3" y1="6" x2="3.01" y2="6"></line>
                 <line x1="3" y1="12" x2="3.01" y2="12"></line>
                 <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+        </button>
+        <button class="pear-fullscreen-btn immersive-btn" id="pear-immersive-toggle" title="Immersive Mode">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
         </button>
         <button class="pear-fullscreen-btn lyrics-btn" id="pear-fullscreen-lyrics-btn" title="Toggle Lyrics">
@@ -294,6 +302,10 @@ export class Miniplayer {
     private isDragging: boolean = false;
     private savedPosition: { x: number, y: number } | null = null;
     private miniplayerElement: HTMLElement | null = null;
+
+    // Immersive Player
+    private immersivePlayer: ImmersivePlayer | null = null;
+    private immersiveToggle: HTMLButtonElement | null = null;
 
     private fastAverageColor: FastAverageColor;
     private boundHandleAudioCanPlay: (e: Event) => void;
@@ -510,6 +522,12 @@ export class Miniplayer {
         this.sleepTimerCloseBtn = this.element.querySelector('#pear-sleep-timer-close');
         this.sleepTimerCustomInput = this.element.querySelector('#pear-sleep-timer-custom-input');
         this.sleepTimerWaitCheckbox = this.element.querySelector('#pear-sleep-timer-wait-end');
+
+        // Immersive Player
+        this.immersiveToggle = this.element.querySelector('#pear-immersive-toggle');
+        if (this.fullscreenPlayer) {
+            this.immersivePlayer = new ImmersivePlayer(this.fullscreenPlayer);
+        }
 
         // Seek bar preview elements
         this.miniplayerSeekPreview = this.element.querySelector('#pear-miniplayer-seek-preview');
@@ -785,6 +803,10 @@ export class Miniplayer {
             this.toggleLyrics();
         });
 
+        this.setupButtonHandler(this.immersiveToggle, () => {
+            this.immersivePlayer?.toggle();
+        });
+
         // ===== Seek Bar Preview Event Listeners =====
         // Miniplayer seek bar hover for preview
         this.seekBar?.addEventListener('mousemove', (e) => {
@@ -1009,7 +1031,7 @@ export class Miniplayer {
         try {
             const saved = localStorage.getItem('pear-miniplayer-position');
             if (saved) {
-                this.savedPosition = JSON.parse(saved);
+                this.savedPosition = JSON.parse(saved) as { x: number; y: number; } | null;
             }
         } catch (e) {
             console.error('[Miniplayer] Failed to load position:', e);
@@ -2284,7 +2306,6 @@ export class Miniplayer {
     private updateFullscreenVisibility() {
         if (!this.fullscreenPlayer) return;
 
-        const width = window.innerWidth;
         const height = window.innerHeight;
 
         // Hide fullscreen player if window is too small (less than 400x570)
@@ -2425,58 +2446,6 @@ export class Miniplayer {
         });
     }
 
-    private async refreshLyricsOnSongChange() {
-        if (!this.isLyricsOpen || !this.fullscreenLyricsContent) return;
-
-        try {
-            const { unmountLyrics, mountLyrics } = await import('./lyrics-wrapper');
-
-            // --- TEARDOWN (Mimic toggleLyrics else block) ---
-
-            // Stop updating current lyric
-            if (this.currentLyricUpdateInterval) {
-                clearInterval(this.currentLyricUpdateInterval);
-                this.currentLyricUpdateInterval = null;
-            }
-
-            unmountLyrics();
-
-            this.fullscreenLyricsPanel?.classList.remove('active');
-            this.fullscreenPlayer?.classList.remove('lyrics-open');
-            this.fullscreenLyricsButton?.classList.remove('active');
-
-            // Clear and hide compact lyrics box
-            if (this.fullscreenCurrentLyricText) {
-                this.fullscreenCurrentLyricText.innerHTML = '';
-            }
-            if (this.fullscreenCurrentLyric) {
-                this.fullscreenCurrentLyric.classList.remove('visible');
-            }
-            this.currentLyricText = '';
-
-            // --- RE-INIT (Mimic toggleLyrics if block) ---
-
-            // Small delay to ensure clean unmount and visual reset
-            setTimeout(() => {
-                // Check if still open (user might have clicked button during delay)
-                if (this.isLyricsOpen && this.fullscreenLyricsContent) {
-                    mountLyrics(this.fullscreenLyricsContent);
-
-                    this.fullscreenLyricsPanel?.classList.add('active');
-                    this.fullscreenPlayer?.classList.add('lyrics-open');
-                    this.fullscreenLyricsButton?.classList.add('active');
-
-                    // Start updating current lyric for bottom mode
-                    this.currentLyricUpdateInterval = window.setInterval(() => {
-                        this.updateCurrentLyric();
-                    }, 100);
-                }
-            }, 100);
-        } catch (error) {
-            console.error('[Miniplayer] Failed to refresh lyrics:', error);
-        }
-    }
-
     private hideYouTubeMiniplayer() {
         // Hide YouTube Music's native miniplayer
         const ytMiniPlayer = document.querySelector<HTMLElement>('ytmusic-player-bar');
@@ -2589,12 +2558,6 @@ export class Miniplayer {
 
         previewElement.style.left = `${leftPosition}px`;
         previewElement.style.opacity = '1';
-    }
-
-    private formatTime(seconds: number): string {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     // ===== SLEEP TIMER METHODS =====

@@ -1,0 +1,528 @@
+/* Immersive Player Styles */
+.pear-immersive-btn {
+    position: relative;
+    /* Reuse existing button styles */
+}
+
+/* When immersive mode is active on the fullscreen container */
+.pear-fullscreen-player.immersive-mode {
+    background: transparent !important;
+    /* Let video show through */
+    overflow: hidden !important;
+    /* Prevent scrolling */
+}
+
+/* Hide the blurred background image in immersive mode */
+.pear-fullscreen-player.immersive-mode::before {
+    opacity: 0 !important;
+    transition: opacity 0.5s ease;
+}
+
+/* Hide the visualizer canvas behind */
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-visualizer-bg,
+.pear-fullscreen-player.immersive-mode .pear-visualizer-overlay {
+    opacity: 0 !important;
+    transition: opacity 0.5s ease;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Video element styles when immersive */
+video.pear-immersive-video {
+    position: absolute !important;
+    /* Changed to absolute since we will move it to container */
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    z-index: -1 !important;
+    /* Behind content */
+    transform: none !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: #000 !important;
+    pointer-events: none !important;
+    filter: none !important;
+    /* Ensure no filters */
+}
+
+/* Fallback background image if video is not available/paused */
+.pear-fullscreen-player.immersive-mode .pear-immersive-fallback {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    z-index: -2;
+    /* Behind video */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none !important;
+}
+
+/* Enhanced fallback visibility */
+.pear-fullscreen-player.immersive-mode.show-fallback .pear-immersive-fallback {
+    opacity: 1 !important;
+    z-index: 0 !important;
+    /* Move above video (z-index -1) */
+}
+
+.pear-fullscreen-player.immersive-mode.show-fallback video.pear-immersive-video {
+    opacity: 0 !important;
+}
+
+/* Ensure controls are clickable */
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-content {
+    /* Main content container should be effectively hidden or allow pass through as we move elements out */
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* HIDE ORIGINAL CONTROLS CONTAINER ELEMENTS THAT WEREN'T MOVED OR ARE EMPTY */
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-controls,
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-bottom-controls,
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-info,
+.pear-fullscreen-player.immersive-mode .pear-fullscreen-media {
+    display: none !important;
+}
+
+/* --- Immersive UI Structure --- */
+.pear-immersive-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 20;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* Make video clearer: More subtle gradient */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.3) 15%, transparent 40%);
+    transition: background 0.3s ease;
+}
+
+.pear-immersive-bottom-bar {
+    width: 100vw;
+    padding: 20px 0 40px;
+    box-sizing: border-box;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.pear-immersive-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    /* Add padding here instead */
+    padding: 0 40px;
+    box-sizing: border-box;
+}
+
+.pear-immersive-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.pear-immersive-group.left {
+    justify-content: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+}
+
+.pear-immersive-text-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.pear-immersive-group.center {
+    justify-content: center;
+    gap: 30px;
+}
+
+.pear-immersive-group.right {
+    justify-content: flex-end;
+}
+
+/* --- Styled Elements within Immersive UI --- */
+
+/* Title & Artist */
+.pear-immersive-text-container #pear-fullscreen-title {
+    font-size: 24px;
+    color: #fff;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    display: block !important;
+    line-height: 1.2;
+}
+
+.pear-immersive-text-container #pear-fullscreen-artist {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    display: block !important;
+    line-height: 1.2;
+}
+
+/* Like Button in Left Group */
+.pear-immersive-group.left #pear-fullscreen-like {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    width: 32px;
+    height: 32px;
+    display: flex !important;
+    box-shadow: none !important;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pear-immersive-group.left #pear-fullscreen-like:hover {
+    color: #fff;
+    transform: scale(1.1);
+}
+
+.pear-immersive-group.left #pear-fullscreen-like.active {
+    color: #ff4d4d;
+    filter: drop-shadow(0 0 5px rgba(255, 77, 77, 0.6));
+    transform: scale(1.1);
+}
+
+.pear-immersive-group.left #pear-fullscreen-like.active svg {
+    fill: #ff4d4d;
+    stroke: #ff4d4d;
+    /* Ensure stroke matches fill or is removed */
+    animation: heartPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Specific path fill to be 100% sure */
+.pear-immersive-group.left #pear-fullscreen-like.active svg path {
+    fill: #ff4d4d !important;
+    stroke: #ff4d4d !important;
+}
+
+@keyframes heartPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.4);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pear-immersive-group.left #pear-fullscreen-like svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Playback Controls */
+.pear-immersive-group.center button {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex !important;
+}
+
+.pear-immersive-group.center button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.pear-immersive-group.center #pear-fullscreen-play {
+    width: 64px;
+    height: 64px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #000;
+}
+
+/* Right Controls */
+.pear-immersive-group.right button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    width: 40px;
+    height: 40px;
+    display: flex !important;
+}
+
+.pear-immersive-group.right button:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+}
+
+/* Active buttons (like toggle) */
+.pear-immersive-group.right button.active {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Volume */
+.pear-immersive-group.right .pear-fullscreen-volume {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pear-immersive-group.right .pear-fullscreen-volume .pear-fullscreen-volume-slider {
+    width: 80px;
+}
+
+/* Seek Bar */
+.pear-immersive-bottom-bar #pear-fullscreen-seek {
+    min-width: 100%;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    height: 4px;
+    display: block !important;
+}
+
+.pear-immersive-bottom-bar #pear-fullscreen-seek:hover {
+    height: 6px;
+}
+
+.pear-immersive-bottom-bar #pear-fullscreen-seek .pear-fullscreen-seek-progress {
+    background: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* --- Lyrics (Immersive) --- */
+.pear-immersive-lyrics {
+    width: 100%;
+    padding: 0 40px 20px;
+    box-sizing: border-box;
+    text-align: center;
+    pointer-events: none;
+    margin-top: auto;
+    padding-bottom: 0;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pear-immersive-lyrics p {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    /* Better Typography */
+    font-family: 'Google Sans', 'Roboto', sans-serif;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+    margin: 0;
+
+    /* Transition State (IDLE / VISIBLE) */
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    transition:
+        opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        filter 0.4s ease;
+
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+/* State when text is changing (EXITING / ENTERING) */
+.pear-immersive-lyrics p.changing {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+    filter: blur(10px);
+    transition:
+        opacity 0.2s ease-in,
+        transform 0.2s ease-in,
+        filter 0.2s ease-in;
+}
+
+/* --- Next Song Indicator --- */
+.pear-immersive-next-song {
+    position: absolute;
+    /* Bottom Right */
+    bottom: 170px;
+    /* Above the control bar (which is padded 40px + height) */
+    right: 40px;
+    top: auto;
+    transform: translateX(50px);
+
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    width: 250px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 30;
+}
+
+.pear-immersive-next-song.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.pear-immersive-next-song .next-song-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+.pear-immersive-next-song .next-song-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pear-immersive-next-song .next-song-image-container {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pear-immersive-next-song .next-song-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.pear-immersive-next-song img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pear-immersive-next-song .next-song-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.pear-immersive-next-song .next-song-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.pear-immersive-next-song .next-song-artist {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Hide original compact lyrics in immersive mode */
+.pear-fullscreen-player.immersive-mode #pear-fullscreen-current-lyric {
+    display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .pear-immersive-bottom-bar {
+        padding: 20px 0 30px !important;
+    }
+
+    .pear-immersive-controls-row {
+        padding: 0 20px;
+    }
+
+    .pear-immersive-group.center {
+        gap: 10px;
+    }
+
+    /* Smaller controls */
+    .pear-immersive-group.center button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .pear-immersive-group.center #pear-fullscreen-play {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* Text resizing */
+    .pear-immersive-text-container #pear-fullscreen-title {
+        font-size: 18px;
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
+    }
+
+    .pear-immersive-text-container #pear-fullscreen-artist {
+        font-size: 14px;
+        max-width: 140px;
+        line-height: 1.2;
+    }
+
+    .pear-immersive-group.right .pear-fullscreen-volume {
+        display: none;
+    }
+
+    .pear-immersive-lyrics {
+        padding: 0 20px 10px;
+    }
+
+    .pear-immersive-lyrics p {
+        font-size: 20px;
+    }
+
+    .pear-immersive-next-song {
+        width: 160px;
+        right: 10px;
+        bottom: 110px;
+        padding: 10px;
+    }
+
+    .pear-immersive-next-song img {
+        width: 36px;
+        height: 36px;
+    }
+
+    .pear-immersive-next-song .next-song-title {
+        font-size: 12px;
+    }
+}

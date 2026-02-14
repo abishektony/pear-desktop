@@ -2,6 +2,7 @@ import { createPlugin } from '@/utils';
 import { t } from '@/i18n';
 
 import style from './style.css?inline';
+import immersiveStyle from './immersive-player.css?inline';
 
 export default createPlugin({
     name: () => t('plugins.miniplayer.name'),
@@ -19,7 +20,8 @@ export default createPlugin({
         autoOpenOnSongChange: false,
         backgroundVisualizer: 'butterchurn', // 'none' | 'butterchurn' | 'sphere'
     },
-    stylesheets: [style],
+    stylesheets: [style, immersiveStyle],
+
     menu: async ({ getConfig, setConfig }) => {
         const config = await getConfig();
         return [
