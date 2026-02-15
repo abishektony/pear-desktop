@@ -90,9 +90,6 @@ const miniplayerHTML = `
     
     <div class="pear-fullscreen-bottom-controls">
         <div class="pear-fullscreen-volume">
-    </div>
-    <div class="pear-fullscreen-bottom-controls">
-        <div class="pear-fullscreen-volume">
         <button class="pear-fullscreen-btn volume-btn" id="pear-fullscreen-volume-btn" title="Mute/Unmute">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -354,6 +351,23 @@ export class Miniplayer {
             this.savedVolume = parseFloat(savedVolume);
         }
 
+        // Load saved lyrics open state
+        const savedLyricsOpen = localStorage.getItem('pear-lyrics-open');
+        if (savedLyricsOpen === 'true') {
+            // Delay slightly to ensure elements are ready
+            setTimeout(() => {
+                if (!this.isLyricsOpen) this.toggleLyrics();
+            }, 500);
+        }
+
+        // Load saved queue open state
+        const savedQueueOpen = localStorage.getItem('pear-queue-open');
+        if (savedQueueOpen === 'true') {
+            setTimeout(() => {
+                if (!this.isQueueOpen) this.toggleQueue();
+            }, 600);
+        }
+
         // Try to connect to existing audio context if available
         this.tryConnectExistingAudio();
 
@@ -393,11 +407,11 @@ export class Miniplayer {
                     // Initialize Background Visualizer with existing source
                     this.initBackgroundVisualizer(existingSource);
 
-                    console.log('[Miniplayer] Connected to existing audio context');
+                    // Connected to existing audio context
                 }
             }
         } catch (err) {
-            console.error('[Miniplayer] Failed to connect to existing audio:', err);
+            // Failed to connect to existing audio
         }
     }
 
@@ -422,7 +436,7 @@ export class Miniplayer {
                 // Initialize Background Visualizer
                 this.initBackgroundVisualizer(source);
             } catch (err) {
-                console.error('[Miniplayer] Failed to connect audio source:', err);
+                // Failed to connect audio source
             }
         }
     }
@@ -468,8 +482,6 @@ export class Miniplayer {
     }
 
     private initElements() {
-        console.log('[Miniplayer] this.element:', this.element);
-        console.log('[Miniplayer] this.element.innerHTML:', this.element.innerHTML.substring(0, 200));
 
         this.titleElement = this.element.querySelector('#pear-miniplayer-title');
         this.artistElement = this.element.querySelector('#pear-miniplayer-artist');
@@ -487,7 +499,6 @@ export class Miniplayer {
 
         // Fullscreen elements
         this.fullscreenPlayer = this.element.querySelector('#pear-fullscreen-player');
-        console.log('[Miniplayer] Queried for #pear-fullscreen-player, result:', this.fullscreenPlayer);
 
         this.fullscreenLyricsButton = this.element.querySelector('#pear-fullscreen-lyrics-btn');
         this.fullscreenLyricsPanel = this.element.querySelector('#pear-fullscreen-lyrics-panel');
@@ -622,11 +633,10 @@ export class Miniplayer {
         const clickableArea = this.element.querySelector('#pear-miniplayer-clickable');
         clickableArea?.addEventListener('mousedown', (e) => this.boundHandleMouseDown(e as MouseEvent));
         clickableArea?.addEventListener('click', (e) => {
-            console.log('[Miniplayer] Click detected on:', e.target);
 
             // Don't open if we just finished dragging
             if (this.miniplayerElement?.classList.contains('just-dragged')) {
-                console.log('[Miniplayer] Click ignored - just dragged');
+                // Click ignored - just dragged
                 e.preventDefault();
                 e.stopPropagation();
                 return;
@@ -636,10 +646,9 @@ export class Miniplayer {
             const target = e.target as HTMLElement;
             if (target.closest('#pear-miniplayer-thumb') ||
                 target.closest('.pear-miniplayer-controls')) {
-                console.log('[Miniplayer] Click ignored - on thumbnail or controls');
+                // Click ignored - on thumbnail or controls
                 return;
             }
-            console.log('[Miniplayer] Opening fullscreen');
             this.openFullscreen();
         });
 
@@ -803,8 +812,16 @@ export class Miniplayer {
             this.toggleLyrics();
         });
 
-        this.setupButtonHandler(this.immersiveToggle, () => {
-            this.immersivePlayer?.toggle();
+        this.setupButtonHandler(this.immersiveToggle, async () => {
+            const isImmersive = this.immersivePlayer?.toggle();
+
+            // If we just exited immersive mode and lyrics were supposed to be open, re-mount them
+            if (!isImmersive && this.isLyricsOpen) {
+                const { mountLyrics } = await import('./lyrics-wrapper');
+                if (this.fullscreenLyricsContent) {
+                    mountLyrics(this.fullscreenLyricsContent);
+                }
+            }
         });
 
         // ===== Seek Bar Preview Event Listeners =====
@@ -1117,12 +1134,12 @@ export class Miniplayer {
         this.isQueueOpen = !this.isQueueOpen;
 
         if (this.isQueueOpen) {
-            // ADD THIS BLOCK:
-            // If window is too small for both, close lyrics
-            if (window.innerWidth < 1200 && this.isLyricsOpen) {
+            // Close lyrics if open on small screens
+            // Or general preference: if user opens queue, maybe they want to focus on it?
+            // "Open it when switching back or when restarted" implicates saving state.
+            if (this.isLyricsOpen && window.innerWidth < 1200) {
                 this.toggleLyrics();
             }
-            // END ADDITION
 
             this.fullscreenQueuePanel.classList.add('active');
             this.fullscreenPlayer.classList.add('queue-open');
@@ -1133,6 +1150,8 @@ export class Miniplayer {
             this.fullscreenPlayer.classList.remove('queue-open');
             this.fullscreenQueueButton?.classList.remove('active');
         }
+
+        localStorage.setItem('pear-queue-open', String(this.isQueueOpen));
     }
 
     private renderQueue() {
@@ -2337,6 +2356,7 @@ export class Miniplayer {
                 if (window.innerWidth < 1200 && this.isQueueOpen) {
                     this.toggleQueue();
                 }
+                localStorage.setItem('pear-lyrics-open', 'true');
             } catch (error) {
                 console.error('[Miniplayer] Failed to load lyrics:', error);
                 this.isLyricsOpen = false;
@@ -2364,6 +2384,7 @@ export class Miniplayer {
                     this.fullscreenCurrentLyric.classList.remove('visible');
                 }
                 this.currentLyricText = '';
+                localStorage.setItem('pear-lyrics-open', 'false');
             } catch (error) {
                 console.error('[Miniplayer] Failed to unmount lyrics:', error);
             }

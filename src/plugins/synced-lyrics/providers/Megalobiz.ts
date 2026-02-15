@@ -29,7 +29,7 @@ export class Megalobiz implements LyricProvider {
       signal: AbortSignal.timeout(5_000),
     });
     if (!response.ok) {
-      throw new Error(`bad HTTPStatus(${response.statusText})`);
+      return null; // Gracefully handle API errors
     }
 
     const data = await response.text();

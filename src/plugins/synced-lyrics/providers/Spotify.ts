@@ -2,7 +2,8 @@ import type { LyricProvider, LyricResult, SearchSongInfo } from '../types';
 
 export class Spotify implements LyricProvider {
     public name = 'Spotify';
-    public baseUrl = 'https://spotify-lyric-api-984e7b4face0.herokuapp.com';
+    // updated base url
+    public baseUrl = 'https://spotify-lyric-api-984e7.web.app/api/v1';
 
     async search({ title, artist }: SearchSongInfo): Promise<LyricResult | null> {
         try {
@@ -52,7 +53,7 @@ export class Spotify implements LyricProvider {
         } catch (error) {
             // Fail gracefully if Spotify API is unavailable
             if (error instanceof Error) {
-                console.warn(`Spotify API error: ${error.message}`);
+                // Fail silently
             }
             // Return null instead of throwing to allow other providers to try
             return null;

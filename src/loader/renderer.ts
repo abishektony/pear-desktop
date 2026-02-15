@@ -58,11 +58,9 @@ export const forceUnloadRendererPlugin = async (id: string) => {
     document.querySelector(`style#plugin-${id}`)?.remove();
   }
   if (hasStopped || (hasStopped === null && plugin?.renderer)) {
-    console.log(
-      LoggerPrefix,
-      t('common.console.plugins.unloaded', { pluginName: id }),
-    );
+    // Plugin unloaded
   } else {
+    // Plugin unload failed
     console.error(
       LoggerPrefix,
       t('common.console.plugins.unload-failed', { pluginName: id }),
@@ -102,12 +100,10 @@ export const forceLoadRendererPlugin = async (id: string) => {
       ];
     }
 
-    console.log(
-      LoggerPrefix,
-      t('common.console.plugins.loaded', { pluginName: id }),
-    );
+    // Plugin loaded
   } else {
-    console.log(
+    // Plugin initialize failed
+    console.warn(
       LoggerPrefix,
       t('common.console.plugins.initialize-failed', { pluginName: id }),
     );

@@ -80,12 +80,12 @@ export const startPlugin = async <Config extends PluginConfig>(
     typeof def[options.ctx] === 'function'
       ? (def[options.ctx] as PluginLifecycleSimple<Config, unknown>)
       : (
-          def[options.ctx] as PluginLifecycleExtra<
-            Config,
-            typeof options.context,
-            unknown
-          >
-        )?.start;
+        def[options.ctx] as PluginLifecycleExtra<
+          Config,
+          typeof options.context,
+          unknown
+        >
+      )?.start;
 
   try {
     // HACK: for bind 'this' to context
@@ -99,21 +99,14 @@ export const startPlugin = async <Config extends PluginConfig>(
       });
     }
 
-    const start = performance.now();
+    // const start = performance.now();
 
     await lifecycle?.call(
       defContext,
       options.context as Config & typeof options.context,
     );
 
-    console.log(
-      LoggerPrefix,
-      t('common.console.plugins.executed-at-ms', {
-        pluginName: id,
-        contextName: options.ctx,
-        ms: (performance.now() - start).toFixed(2),
-      }),
-    );
+    // Plugin executed log removed
 
     return lifecycle ? true : null;
   } catch (err) {
@@ -144,20 +137,13 @@ export const stopPlugin = async <Config extends PluginConfig>(
 
   try {
     const stop = defCtx.stop;
-    const start = performance.now();
+    // const start = performance.now();
     await stop.call(
       def[options.ctx],
       options.context as Config & typeof options.context,
     );
 
-    console.log(
-      LoggerPrefix,
-      t('common.console.plugins.executed-at-ms', {
-        pluginName: id,
-        contextName: options.ctx,
-        ms: performance.now() - start,
-      }),
-    );
+    // Plugin executed log removed
 
     return true;
   } catch (err) {

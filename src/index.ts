@@ -104,6 +104,9 @@ protocol.registerSchemesAsPrivileged([
   { scheme: 'mailto', privileges: { standard: true } },
 ]);
 
+// Silence harmless warnings from DevTools and Chromium
+app.commandLine.appendSwitch('log-level', '3');
+
 // https://github.com/electron/electron/issues/46538#issuecomment-2808806722
 if (is.linux()) {
   app.commandLine.appendSwitch('gtk-version', '3');
@@ -120,7 +123,7 @@ app.commandLine.appendSwitch(
   'OverlayScrollbar,SharedArrayBuffer,UseOzonePlatform,WaylandWindowDecorations',
 );
 // Disable Fluent Scrollbar (for OverlayScrollbar)
-app.commandLine.appendSwitch('disable-features', 'FluentScrollbar,Autofill');
+app.commandLine.appendSwitch('disable-features', 'FluentScrollbar');
 if (config.get('options.disableHardwareAcceleration')) {
   if (is.dev()) {
     console.log('Disabling hardware acceleration');
@@ -581,7 +584,7 @@ app.once('browser-window-created', (_event, win) => {
         null,
         '\t',
       );
-      if (is.dev()) {
+      if (is.dev() && errorCode !== -3) {
         console.log(log);
       }
 

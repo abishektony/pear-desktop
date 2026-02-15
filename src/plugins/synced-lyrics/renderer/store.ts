@@ -1,5 +1,5 @@
 import { createStore } from 'solid-js/store';
-import { createMemo } from 'solid-js';
+import { createMemo, createRoot } from 'solid-js';
 
 import { getSongInfo } from '@/providers/song-info-front';
 
@@ -36,10 +36,10 @@ export const [lyricsStore, setLyricsStore] = createStore<LyricsStore>({
   },
 });
 
-export const currentLyrics = createMemo(() => {
+export const currentLyrics = createRoot(() => createMemo(() => {
   const provider = lyricsStore.provider;
   return lyricsStore.lyrics[provider];
-});
+}));
 
 type VideoId = string;
 
