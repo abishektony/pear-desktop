@@ -14,8 +14,6 @@
     "url": "https://github.com/pear-devs/pear-desktop"
   },
   "scripts": {
-    "test": "pnpm playwright test",
-    "test:debug": "pnpm cross-env DEBUG=pw:*,-pw:test:protocol playwright test",
     "build": "pnpm electron-vite build",
     "vite:inspect": "pnpm clean && electron-vite build --mode development && pnpm exec serve .vite-inspect",
     "start": "pnpm electron-vite preview",
@@ -33,7 +31,6 @@
     "dist:mac:arm64": "pnpm clean && pnpm build && pnpm electron-builder --mac dmg:arm64 -p never",
     "dist:win": "pnpm clean && pnpm build && pnpm electron-builder --win -p never",
     "dist:win:x64": "pnpm clean && pnpm build && pnpm electron-builder --win nsis-web:x64 -p never",
-    "release:linux:rpm-amd64": "pnpm clean && pnpm build && pnpm electron-builder --linux rpm:x64 -p always",
     "lint": "pnpm eslint ./src",
     "changelog": "pnpm dlx auto-changelog",
     "release:linux": "pnpm clean && pnpm build && pnpm electron-builder --linux -p always -c.snap.publish=github",
@@ -150,7 +147,6 @@
     "@electron-toolkit/tsconfig": "1.0.1",
     "@eslint/js": "9.35.0",
     "@malept/flatpak-bundler": "0.4.0",
-    "@playwright/test": "1.55.0",
     "@stylistic/eslint-plugin": "5.3.1",
     "@total-typescript/ts-reset": "0.6.1",
     "@types/electron-localshortcut": "3.1.3",
@@ -178,7 +174,6 @@
     "eslint-plugin-solid": "0.14.5",
     "glob": "11.0.3",
     "node-gyp": "11.4.2",
-    "playwright": "1.55.0",
     "ts-morph": "27.0.0",
     "typescript": "5.9.2",
     "typescript-eslint": "8.43.0",

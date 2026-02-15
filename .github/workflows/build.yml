@@ -45,25 +45,26 @@ jobs:
 
       # Only vite build without release if it is a fork, or it is a pull-request
       - name: Vite Build
-        if: github.event_name == 'pull_request'
+        if: github.repository == 'pear-devs/pear-desktop' && github.event_name == 'pull_request'
         run: |
           pnpm build
 
+      # Build and release if it's the main repository and is not pull-request
       - name: Build and release on Mac
-        if: startsWith(matrix.os, 'macOS') && github.event_name != 'pull_request'
+        if: startsWith(matrix.os, 'macOS') && (github.repository == 'pear-devs/pear-desktop' && github.event_name != 'pull_request')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm release:mac
 
       - name: Build and release on Linux
-        if: startsWith(matrix.os, 'ubuntu') && github.event_name != 'pull_request'
+        if: startsWith(matrix.os, 'ubuntu') && (github.repository == 'pear-devs/pear-desktop' && github.event_name != 'pull_request')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           sudo snap install snapcraft --classic
           sudo apt update
-          sudo apt install -y flatpak flatpak-builder rpm libarchive-tools
+          sudo apt install -y flatpak flatpak-builder
           sudo flatpak remote-add --if-not-exists --system flathub https://flathub.org/repo/flathub.flatpakrepo
           sudo flatpak install -y flathub org.freedesktop.Platform/x86_64/24.08
           sudo flatpak install -y flathub org.freedesktop.Sdk/x86_64/24.08
@@ -71,18 +72,16 @@ jobs:
           pnpm release:linux
 
       - name: Build and release on Windows
-        if: startsWith(matrix.os, 'windows') && github.event_name != 'pull_request'
+        if: startsWith(matrix.os, 'windows') && (github.repository == 'pear-devs/pear-desktop' && github.event_name != 'pull_request')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm release:win
 
-
-
   release:
     runs-on: ubuntu-latest
     name: Release Pear Desktop
-    if: github.ref == 'refs/heads/master'
+    if: github.repository == 'pear-devs/pear-desktop' && github.ref == 'refs/heads/master'
     needs: build
     steps:
       - uses: actions/checkout@v5
@@ -96,17 +95,10 @@ jobs:
           run_install: false
 
       - name: Setup NodeJS
-        if: startsWith(matrix.os, 'macOS') != true
         uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-
-      - name: Setup NodeJS for macOS
-        if: startsWith(matrix.os, 'macOS')
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

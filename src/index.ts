@@ -71,7 +71,7 @@ unhandled({
 let mainWindow: Electron.BrowserWindow | null;
 autoUpdater.autoDownload = false;
 
-const gotTheLock = isTesting() || app.requestSingleInstanceLock();
+const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.exit();
 }
