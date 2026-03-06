@@ -52,16 +52,16 @@ type CustomSongInfo = SongInfo & { trackId?: string };
 const ffmpeg = lazy(async () =>
   (await import('@ffmpeg.wasm/main')).createFFmpeg({
     log: false,
-    logger() {}, // Console.log,
-    progress() {}, // Console.log,
+    logger() { }, // Console.log,
+    progress() { }, // Console.log,
   }),
 );
 const ffmpegMutex = new Mutex();
 
-Platform.shim.eval = async (data: Types.BuildScriptResult, env: Record<string, Types.VMPrimative>) => {
+Platform.shim.eval = async (data: any, env: Record<string, any>) => {
   const properties = [];
 
-  if(env.n) {
+  if (env.n) {
     properties.push(`n: exportedVars.nFunction("${env.n}")`)
   }
 
@@ -109,9 +109,9 @@ const sendError = (error: Error, source?: string) => {
   const songNameMessage = source ? `\nin ${source}` : '';
   const cause = error.cause
     ? `\n\n${
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
-        error.cause instanceof Error ? error.cause.toString() : error.cause
-      }`
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string,@typescript-eslint/restrict-template-expressions
+    error.cause instanceof Error ? error.cause.toString() : error.cause
+    }`
     : '';
   const message = `${error.toString()}${songNameMessage}${cause}`;
 
@@ -231,7 +231,7 @@ export async function downloadSong(
   url: string,
   playlistFolder: string | undefined = undefined,
   trackId: string | undefined = undefined,
-  increasePlaylistProgress: (value: number) => void = () => {},
+  increasePlaylistProgress: (value: number) => void = () => { },
 ) {
   let resolvedName;
   try {
@@ -252,7 +252,7 @@ export async function downloadSongFromId(
   id: string,
   playlistFolder: string | undefined = undefined,
   trackId: string | undefined = undefined,
-  increasePlaylistProgress: (value: number) => void = () => {},
+  increasePlaylistProgress: (value: number) => void = () => { },
 ) {
   let resolvedName;
   try {
@@ -297,8 +297,8 @@ function downloadSongOnFinishSetup({
           downloadSong(
             currentUrl,
             config.downloadOnFinish.folder ??
-              config.downloadFolder ??
-              defaultDownloadFolder,
+            config.downloadFolder ??
+            defaultDownloadFolder,
           );
         } else if (
           config.downloadOnFinish.mode === 'percent' &&
@@ -307,8 +307,8 @@ function downloadSongOnFinishSetup({
           downloadSong(
             currentUrl,
             config.downloadOnFinish.folder ??
-              config.downloadFolder ??
-              defaultDownloadFolder,
+            config.downloadFolder ??
+            defaultDownloadFolder,
           );
         }
       }
@@ -330,7 +330,7 @@ async function downloadSongUnsafe(
   setName: (name: string) => void,
   playlistFolder: string | undefined = undefined,
   trackId: string | undefined = undefined,
-  increasePlaylistProgress: (value: number) => void = () => {},
+  increasePlaylistProgress: (value: number) => void = () => { },
 ) {
   const sendFeedback = (message: unknown, progress?: number) => {
     if (!playlistFolder) {
@@ -371,9 +371,8 @@ async function downloadSongUnsafe(
 
   const dir =
     playlistFolder || config.downloadFolder || app.getPath('downloads');
-  const name = `${metadata.artist ? `${metadata.artist} - ` : ''}${
-    metadata.title
-  }`;
+  const name = `${metadata.artist ? `${metadata.artist} - ` : ''}${metadata.title
+    }`;
   setName(name);
 
   let playabilityStatus = info.playability_status;
@@ -491,7 +490,7 @@ async function downloadChunks(
   stream: AsyncGenerator<Uint8Array, void>,
   contentLength: number,
   sendFeedback: (str: string, value?: number) => void,
-  increasePlaylistProgress: (value: number) => void = () => {},
+  increasePlaylistProgress: (value: number) => void = () => { },
 ) {
   const chunks = [];
   let downloaded = 0;
@@ -520,7 +519,7 @@ async function iterableStreamToProcessedUint8Array(
   presetFfmpegArgs: string[],
   contentLength: number,
   sendFeedback: (str: string, value?: number) => void,
-  increasePlaylistProgress: (value: number) => void = () => {},
+  increasePlaylistProgress: (value: number) => void = () => { },
 ): Promise<Uint8Array | null> {
   sendFeedback(t('plugins.downloader.backend.feedback.loading'), 2); // Indefinite progress bar after download
 

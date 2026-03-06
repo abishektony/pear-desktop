@@ -1,4 +1,4 @@
-import { getCurrentLyricText, mountLyrics, unmountLyrics } from './lyrics-wrapper';
+import { mountLyrics, unmountLyrics, getAllLyrics, getRomanizedLyric, getCurrentLyricText } from './lyrics-wrapper';
 
 export class ImmersivePlayer {
     private isActive: boolean = false;
@@ -17,12 +17,20 @@ export class ImmersivePlayer {
     private userPreferredZenMode: boolean = false;
     private zenModeTimeout: number | null = null;
 
-    // Lyrics
-    private immersiveLyricContainer: HTMLElement | null = null;
-    private lyricLines: HTMLElement[] = []; // Track active lyric lines
-    private lyricsInterval: number | null = null;
 
+
+    // Lyrics
+    private isInteractiveLyrics: boolean = true;
+    private showTranslation: boolean = false;
+    private immersiveLyricContainer: HTMLElement | null = null;
+    private lyricsScrollContainer: HTMLElement | null = null;
+    private lyricsInterval: number | null = null;
+    private currentLines: any[] = [];
+    private lyricElements: HTMLElement[] = [];
+    private lyricLines: HTMLElement[] = [];
     private currentLyric: string = '';
+    private userScrollOffset: number = 0;
+    private lastWheelTime: number = 0;
 
     // Next Song
     private nextSongIndicator: HTMLElement | null = null;
@@ -56,72 +64,70 @@ export class ImmersivePlayer {
         }
     }
 
+    private getThumbnailUrl(): string | null {
+        // Check direct fullscreen elements first via CSS var
+        if (this.fullscreenPlayer) {
+            const bg = this.fullscreenPlayer.style.getPropertyValue('--bg-image');
+            if (bg && bg.includes('url')) {
+                const match = bg.match(/url\(["']?(.*?)["']?\)/);
+                if (match && match[1]) return match[1];
+            }
+        }
+
+        // Check image elements
+        const selectors = [
+            '#pear-fullscreen-thumb-top img',
+            '#pear-fullscreen-thumb-bottom img',
+            'ytmusic-player-bar yt-img-shadow img',
+            '.image.ytmusic-player-bar img',
+            '#song-image img',
+            '#thumbnail img'
+        ];
+
+        for (const sel of selectors) {
+            const img = document.querySelector(sel) as HTMLImageElement;
+            if (img) {
+                const src = img.currentSrc || img.src || img.getAttribute('src');
+                if (src && src.startsWith('http') && src !== location.href) {
+                    return src;
+                }
+            }
+        }
+
+        // Check meta tags as backup
+        const metaImg = document.querySelector('meta[property="og:image"]');
+        if (metaImg) {
+            const content = metaImg.getAttribute('content');
+            if (content && content.startsWith('http')) return content;
+        }
+        return null;
+    }
+
+
     private monitorVideo() {
         setInterval(() => {
             if (!this.isActive) return;
 
             const video = this.videoElement || document.querySelector('video');
 
-            // Check if video exists AND has dimensions. 
-            // Often audio-only streams have a video element with 0 height.
             if (!video || video.videoHeight === 0 || video.style.display === 'none') {
                 this.showFallback();
-                return;
+            } else {
+                if (!video.classList.contains('pear-immersive-video') && this.isActive) {
+                    video.classList.add('pear-immersive-video');
+                }
+                this.hideFallback();
             }
 
-            if (video.classList.contains('pear-immersive-video')) {
-                this.hideFallback();
-            } else if (this.isActive) {
-                video.classList.add('pear-immersive-video');
-                this.hideFallback();
-            }
+
+
         }, 1000);
     }
 
     private showFallback() {
         this.fullscreenPlayer.classList.add('show-fallback');
 
-        // Robust thumbnail extraction similar to Miniplayer
-        const getThumbnail = (): string | null => {
-            // Check direct fullscreen elements first via CSS var (most reliable as Miniplayer sets it)
-            if (this.fullscreenPlayer) {
-                const bg = this.fullscreenPlayer.style.getPropertyValue('--bg-image');
-                if (bg && bg.includes('url')) {
-                    const match = bg.match(/url\(["']?(.*?)["']?\)/);
-                    if (match && match[1]) return match[1];
-                }
-            }
-
-            // Check image elements
-            const selectors = [
-                '#pear-fullscreen-thumb-top img',
-                '#pear-fullscreen-thumb-bottom img',
-                'ytmusic-player-bar yt-img-shadow img',
-                '.image.ytmusic-player-bar img',
-                '#song-image img',
-                '#thumbnail img'
-            ];
-
-            for (const sel of selectors) {
-                const img = document.querySelector(sel) as HTMLImageElement;
-                if (img) {
-                    const src = img.currentSrc || img.src || img.getAttribute('src');
-                    if (src && src.startsWith('http') && src !== location.href) {
-                        return src;
-                    }
-                }
-            }
-
-            // Check meta tags as backup
-            const metaImg = document.querySelector('meta[property="og:image"]');
-            if (metaImg) {
-                const content = metaImg.getAttribute('content');
-                if (content && content.startsWith('http')) return content;
-            }
-            return null;
-        };
-
-        const src = getThumbnail();
+        const src = this.getThumbnailUrl();
 
         if (src) {
             this.fallbackElement.style.backgroundImage = `url('${src}')`;
@@ -164,6 +170,11 @@ export class ImmersivePlayer {
         if (this.videoElement) {
             this.moveVideoToPlayer();
             this.videoElement.classList.add('pear-immersive-video');
+
+            // Force play as moving elements in DOM can pause them in Chrome/Electron
+            this.videoElement.play().catch(e => {
+                console.warn('[ImmersivePlayer] Failed to play video after move:', e);
+            });
         }
 
         this.setupImmersiveUI();
@@ -189,6 +200,39 @@ export class ImmersivePlayer {
             }
         } else {
             this.userPreferredZenMode = false;
+        }
+
+        // Restore Lyrics preference
+        const savedLyricsPref = localStorage.getItem('pear-immersive-lyrics');
+        if (savedLyricsPref === 'false') {
+            this.isInteractiveLyrics = false;
+        } else {
+            this.isInteractiveLyrics = true;
+        }
+        if (this.immersiveLyricContainer) {
+            this.immersiveLyricContainer.classList.toggle('interactive-mode', this.isInteractiveLyrics);
+        }
+        const lyricsBtn = document.querySelector('.lyrics-toggle') as HTMLElement;
+        if (lyricsBtn) {
+            lyricsBtn.classList.toggle('active', this.isInteractiveLyrics);
+            lyricsBtn.style.opacity = this.isInteractiveLyrics ? '1' : '0.5';
+        }
+
+        // Restore Translation preference
+        const savedTranslationPref = localStorage.getItem('pear-immersive-translation');
+        if (savedTranslationPref === 'true') {
+            this.showTranslation = true;
+        } else {
+            this.showTranslation = false;
+        }
+        const translationBtn = document.querySelector('.translation-toggle') as HTMLElement;
+        if (translationBtn) {
+            translationBtn.classList.toggle('active', this.showTranslation);
+            translationBtn.style.opacity = this.showTranslation ? '1' : '0.5';
+        }
+        if (lyricsBtn) {
+            lyricsBtn.classList.toggle('active', this.isInteractiveLyrics);
+            lyricsBtn.style.opacity = this.isInteractiveLyrics ? '1' : '0.5';
         }
 
         // Attach resize handler
@@ -273,6 +317,19 @@ export class ImmersivePlayer {
         // Lyrics Container (Above controls)
         this.immersiveLyricContainer = document.createElement('div');
         this.immersiveLyricContainer.className = 'pear-immersive-lyrics';
+
+        // Scroll container for interactive lyrics
+        this.lyricsScrollContainer = document.createElement('div');
+        this.lyricsScrollContainer.className = 'lyrics-scroll-container';
+        this.immersiveLyricContainer.appendChild(this.lyricsScrollContainer);
+
+        // Handle User Scrolling
+        this.immersiveLyricContainer.addEventListener('wheel', (e) => {
+            this.userScrollOffset += e.deltaY;
+            this.lastWheelTime = Date.now();
+            e.preventDefault();
+        }, { passive: false });
+
         this.immersiveContainer.appendChild(this.immersiveLyricContainer);
 
 
@@ -404,6 +461,35 @@ export class ImmersivePlayer {
         zenToggle.onclick = () => this.toggleZenMode();
         rightGroup.appendChild(zenToggle);
 
+        // Lyrics Toggle
+        const lyricsToggle = document.createElement('button');
+        lyricsToggle.className = 'pear-immersive-btn lyrics-toggle active';
+        lyricsToggle.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        `;
+        lyricsToggle.title = "Toggle Lyrics";
+        lyricsToggle.onclick = () => this.toggleLyricsMode();
+        rightGroup.appendChild(lyricsToggle);
+
+        // Translation Toggle
+        const translationToggle = document.createElement('button');
+        translationToggle.className = 'pear-immersive-btn translation-toggle';
+        translationToggle.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 8l6 6"></path>
+                <path d="M4 14l6-6 2-3"></path>
+                <path d="M2 5h12"></path>
+                <path d="M7 2h1"></path>
+                <path d="M22 22l-5-10-5 10"></path>
+                <path d="M14 18h6"></path>
+            </svg>
+        `;
+        translationToggle.title = "Toggle Translation";
+        translationToggle.onclick = () => this.toggleTranslationMode();
+        rightGroup.appendChild(translationToggle);
+
         // Hover listener to reveal controls in Zen Mode
         this.immersiveContainer.addEventListener('mousemove', () => {
             if (this.zenMode) {
@@ -462,23 +548,47 @@ export class ImmersivePlayer {
             this.immersiveContainer = null;
         }
         this.immersiveLyricContainer = null;
+        this.lyricsScrollContainer = null;
+        this.lyricElements = [];
         this.lyricLines = [];
+        this.currentLines = [];
+        this.userScrollOffset = 0;
         this.nextSongIndicator = null;
     }
 
     // --- Lyrics Logic ---
     private startLyricsLoop() {
         if (this.lyricsInterval) clearInterval(this.lyricsInterval);
+
+        // Reset state
+        this.currentLines = [];
+        if (this.lyricsScrollContainer) {
+            this.lyricsScrollContainer.innerHTML = '';
+        }
+        this.lyricElements = [];
+        this.lyricLines.forEach(l => l.remove());
+        this.lyricLines = [];
+        this.currentLyric = '';
+
         this.lyricsInterval = window.setInterval(() => {
-            const text = getCurrentLyricText();
-            if (text && text !== this.currentLyric) {
-                this.currentLyric = text;
-                this.addLyricLine(text);
-            } else if (!text && this.lyricLines.length > 0) {
-                // Optional: Clear lyrics if song changes or long pause? 
-                // For now, keep last state until new lyric comes.
+            if (this.isInteractiveLyrics) {
+                this.lyricLines.forEach(l => l.style.display = 'none');
+                this.updateInteractiveLyrics();
+            } else {
+                this.lyricLines.forEach(l => l.style.display = 'block');
+                this.updateCompactLyrics();
             }
-        }, 300);
+        }, 100); // Run faster for smoother scrolling & tracking
+    }
+
+    private updateCompactLyrics() {
+        const text = getCurrentLyricText(this.showTranslation);
+        if (text && text !== this.currentLyric) {
+            this.currentLyric = text;
+            this.addLyricLine(text);
+        } else if (!text && this.lyricLines.length > 0) {
+            // Wait for new lyrics
+        }
     }
 
     private addLyricLine(text: string) {
@@ -498,44 +608,125 @@ export class ImmersivePlayer {
         // Add to tracking
         this.lyricLines.push(p);
 
-        // Process previous lines (Latest is at end)
-        // [prev-1, active]
-
         // We iterate backwards from the 2nd to last element
         for (let i = this.lyricLines.length - 2; i >= 0; i--) {
             const line = this.lyricLines[i];
-            const age = this.lyricLines.length - 1 - i; // 1 = prev-1, 2 = prev-2
+            const age = this.lyricLines.length - 1 - i;
 
             if (age > 1) { // Only keep 1 previous line
                 line.style.opacity = '0';
-                line.style.transform = 'translateY(-60px) scale(0.6) rotateX(20deg)'; // Exit animation (Up)
+                line.style.transform = 'translateY(-60px) scale(0.6) rotateX(20deg)';
                 setTimeout(() => line.remove(), 500);
-                this.lyricLines.splice(i, 1); // Remove from array
+                this.lyricLines.splice(i, 1);
             } else {
-                // Determine translation based on height of the NEW active line
-                // The new active line is 'p' (which is this.lyricLines[this.lyricLines.length - 1])
-                // We want to push the previous line (line) UP by a dynamic amount.
-                // Standard single line height + gap is approx 50px.
-
                 let translateY = -50;
                 const activeHeight = p.offsetHeight;
 
-                // If active line is taller than ~40-50px (e.g. 2 lines), we need to push prev line higher
                 if (activeHeight > 60) {
                     translateY = -80;
                 }
 
-                // Check if the previous line ITSELF is tall?
-                // Actually the position of the previous line is relative to the bottom container?
-                // No, they are all absolute at bottom:0.
-                // So if we translateY -50, it goes up 50px.
-                // If the new active text is tall, it takes up more space at the bottom.
-                // But the previous line is BEHIND it/ABOVE it.
-                // If the new text is tall, the previous text needs to be higher up to not overlap.
-
                 line.className = `lyric-line prev-${age}`;
                 line.style.transform = `translateY(${translateY}px) scale(0.9) rotateX(10deg)`;
             }
+        }
+    }
+
+    private updateInteractiveLyrics() {
+        if (!this.lyricsScrollContainer || !this.immersiveLyricContainer) return;
+
+        const lines = getAllLyrics();
+        const video = document.querySelector('video');
+        if (!video) return;
+
+        const time = video.currentTime * 1000; // ms
+
+        // If lyrics changed, rebuild the DOM
+        if (lines !== this.currentLines) {
+            this.currentLines = lines || [];
+            this.lyricsScrollContainer.innerHTML = '';
+            this.lyricElements = [];
+
+            this.userScrollOffset = 0; // reset scroll
+
+            this.currentLines.forEach((line: any) => {
+                const p = document.createElement('p');
+                p.className = 'lyric-line-interactive';
+                p.innerText = line.text;
+
+                if (this.showTranslation) {
+                    getRomanizedLyric(line.text).then(romanized => {
+                        if (romanized) {
+                            const span = document.createElement('div');
+                            span.className = 'lyric-romanized';
+                            span.innerText = romanized;
+                            p.appendChild(span);
+                        }
+                    });
+                }
+
+                // Click to seek
+                p.addEventListener('click', () => {
+                    if (video) {
+                        video.currentTime = line.timeInMs / 1000;
+                        this.userScrollOffset = 0; // SNAP back to center
+                    }
+                });
+
+                this.lyricsScrollContainer!.appendChild(p);
+                this.lyricElements.push(p);
+            });
+        }
+
+        if (this.currentLines.length === 0) {
+            this.lyricsScrollContainer.style.transform = `translateY(0px)`;
+            return;
+        }
+
+        // Find active line index
+        let activeIndex = 0;
+        for (let i = 0; i < this.currentLines.length; i++) {
+            if (time >= this.currentLines[i].timeInMs) {
+                // Keep moving active index forward
+                activeIndex = i;
+            } else {
+                break;
+            }
+        }
+
+        // Apply classes
+        for (let i = 0; i < this.lyricElements.length; i++) {
+            const el = this.lyricElements[i];
+            const diff = i - activeIndex;
+
+            el.className = 'lyric-line-interactive'; // base class
+
+            if (diff === 0) {
+                el.classList.add('active');
+            } else if (diff < 0) {
+                el.classList.add('past');
+            } else {
+                el.classList.add('next');
+            }
+        }
+
+        // Auto-center logic with user scroll offset
+        const activeElement = this.lyricElements[activeIndex];
+        if (activeElement) {
+            const containerHeight = this.immersiveLyricContainer.offsetHeight;
+            const elementOffsetFromScrollContainer = activeElement.offsetTop;
+            const elementHeight = activeElement.offsetHeight;
+
+            // Target scroll so activeElement is centered
+            const targetScrollCenter = elementOffsetFromScrollContainer - (containerHeight / 2) + (elementHeight / 2);
+
+            // Smoothly reduce userScrollOffset if no interaction for a bit -> "snap back"
+            if (Date.now() - this.lastWheelTime > 3000 && Math.abs(this.userScrollOffset) > 1) {
+                this.userScrollOffset -= this.userScrollOffset * 0.05;
+            }
+
+            const currentTranslation = -(targetScrollCenter + this.userScrollOffset);
+            this.lyricsScrollContainer.style.transform = `translateY(${currentTranslation}px)`;
         }
     }
 
@@ -582,6 +773,41 @@ export class ImmersivePlayer {
                 this.nextSongIndicator.style.opacity = '';
             }
             this.checkNextSong();
+        }
+    }
+
+    private toggleLyricsMode() {
+        this.isInteractiveLyrics = !this.isInteractiveLyrics;
+
+        // Save preference
+        localStorage.setItem('pear-immersive-lyrics', String(this.isInteractiveLyrics));
+
+        if (this.immersiveLyricContainer) {
+            this.immersiveLyricContainer.classList.toggle('interactive-mode', this.isInteractiveLyrics);
+        }
+
+        const btn = document.querySelector('.lyrics-toggle') as HTMLElement;
+        if (btn) {
+            btn.classList.toggle('active', this.isInteractiveLyrics);
+            // Gray out the icon if disabled
+            btn.style.opacity = this.isInteractiveLyrics ? '1' : '0.5';
+        }
+    }
+
+    private toggleTranslationMode() {
+        this.showTranslation = !this.showTranslation;
+        localStorage.setItem('pear-immersive-translation', String(this.showTranslation));
+
+        const btn = document.querySelector('.translation-toggle') as HTMLElement;
+        if (btn) {
+            btn.classList.toggle('active', this.showTranslation);
+            btn.style.opacity = this.showTranslation ? '1' : '0.5';
+        }
+
+        // Re-render lyrics
+        this.currentLines = [];
+        if (this.lyricsScrollContainer) {
+            this.lyricsScrollContainer.innerHTML = '';
         }
     }
 

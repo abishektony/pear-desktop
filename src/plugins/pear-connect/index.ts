@@ -45,6 +45,14 @@ export default createPlugin({
       onConfigChange(newConfig: PearConnectConfig) {
         backendInstance?.onConfigChange(newConfig);
       },
+      onPlayVideoId: (videoId) => {
+        console.log('[PearConnect Backend] Forwarding play-video-id to renderer:', videoId);
+        if (win.webContents) {
+          win.webContents.send('pear-connect:play-video-id', videoId);
+        } else {
+          console.error('[PearConnect Backend] Cannot send play-video-id: webContents not found');
+        }
+      },
     };
   },
 
@@ -72,11 +80,13 @@ export default createPlugin({
 
       // Listen for show dialog request from menu
       ipc.on('pear-connect:show-dialog', () => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:show-dialog');
         (this as any).showConnectDialog();
       });
 
       // Listen for play queue item request
       ipc.on('pear-connect:play-queue-item', (index: number) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:play-queue-item', index);
         try {
           (this as any).handlePlayQueueItem(index);
         } catch (error) {
@@ -84,23 +94,37 @@ export default createPlugin({
         }
       });
 
+      // Listen for play video id request (from remote client)
+      ipc.on('pear-connect:play-video-id', (videoId: string) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:play-video-id', videoId);
+        try {
+          (this as any).handlePlayVideoId(videoId);
+        } catch (error) {
+          console.error('[PearConnect Renderer] Error handling play-video-id:', error);
+        }
+      });
+
       // Listen for playback control from backend
       ipc.on('pear-connect:playback-control', (action: string) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:playback-control', action);
         (this as any).handlePlaybackControl(action);
       });
 
       // Listen for volume control from backend
       ipc.on('pear-connect:volume-control', (volume: number) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:volume-control', volume);
         (this as any).handleVolumeControl(volume);
       });
 
       // Listen for seek from backend
       ipc.on('pear-connect:seek', (time: number) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:seek', time);
         (this as any).handleSeek(time);
       });
 
       // Listen for playback target changes
       ipc.on('pear-connect:playback-target-changed', (target: string) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:playback-target-changed', target);
         // Mute/unmute laptop based on target
         if (this.playerApi) {
           if (target === 'phone') {
@@ -119,11 +143,13 @@ export default createPlugin({
 
       // WebRTC Signaling - Handle RTC offer from phone
       ipc.on('pear-connect:rtc-offer', async (data: { clientId: string; offer: RTCSessionDescriptionInit }) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:rtc-offer', data.clientId);
         await (this as any).handleRTCOffer(data.clientId, data.offer);
       });
 
       // WebRTC Signaling - Handle ICE candidate from phone
       ipc.on('pear-connect:rtc-ice-candidate', async (data: { clientId: string; candidate: RTCIceCandidateInit }) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:rtc-ice-candidate', data.clientId);
         const pc = this.peerConnections.get(data.clientId);
         if (pc) {
           await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -132,6 +158,7 @@ export default createPlugin({
 
       // Handle lyrics request
       ipc.on('pear-connect:get-lyrics', async () => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:get-lyrics');
         (this as any).sendLyricsUpdate();
       });
 
@@ -711,52 +738,71 @@ export default createPlugin({
     },
 
     handleAddToQueue(this: any, item: QueueItem) {
-      // Add to queue using the video ID
-      if (item.videoId) {
-        // This would require accessing the queue API
-      }
+      if (!item.videoId) return;
+      const queue = document.querySelector<any>('#queue');
+      const store = queue?.queue?.store?.store;
+      if (!store) return;
+
+      // Use internal ADD_ITEMS dispatch
+      queue.dispatch({
+        type: 'ADD_ITEMS',
+        payload: {
+          items: [{
+            playlistPanelVideoRenderer: {
+              videoId: item.videoId,
+              title: { runs: [{ text: item.title }] },
+              longBylineText: { runs: [{ text: item.artist }] },
+              thumbnail: { thumbnails: [{ url: item.thumbnail }] }
+            }
+          }],
+          index: store.getState().queue.items.length,
+          shuffleEnabled: false,
+          shouldAssignIds: true
+        }
+      });
     },
 
     handlePlayQueueItem(this: any, index: number) {
-      const queueItems = document.querySelectorAll('ytmusic-player-queue-item');
-      if (!queueItems[index]) {
-        return;
+      console.log('[PearConnect] Requesting play queue item at index:', index);
+      const queue = document.querySelector<any>('#queue');
+
+      // Method 1: Direct Dispatch (Instant & Native side-effects)
+      if (queue?.dispatch) {
+        try {
+          queue.dispatch({
+            type: 'SET_INDEX',
+            payload: index,
+          });
+          return;
+        } catch (e) {
+          console.error('[PearConnect] Failed to dispatch SET_INDEX', e);
+        }
       }
 
-      // Method 1: Use relative navigation (more reliable)
-      if (this.playerApi) {
-        // Find the currently playing item in the queue
-        const currentIndex = Array.from(queueItems).findIndex(item => item.hasAttribute('selected'));
+      const queueItems = document.querySelectorAll('ytmusic-player-queue-item');
 
+      // Method 2: Fallback to relative navigation
+      if (this.playerApi) {
+        const currentIndex = Array.from(queueItems).findIndex(item => item.hasAttribute('selected'));
         if (currentIndex !== -1) {
           const relativeIndex = index - currentIndex;
-
           if (relativeIndex === 0) {
-            // Clicked the current song, just restart it
             this.playerApi.seekTo(0);
             this.playerApi.playVideo();
             return;
           }
-
-          // Navigate forward
           if (relativeIndex > 0) {
-            for (let i = 0; i < relativeIndex; i++) {
-              this.playerApi.nextVideo();
-            }
+            for (let i = 0; i < relativeIndex; i++) this.playerApi.nextVideo();
             return;
           }
-
-          // Navigate backward
           if (relativeIndex < 0) {
-            for (let i = 0; i < Math.abs(relativeIndex); i++) {
-              this.playerApi.previousVideo();
-            }
+            for (let i = 0; i < Math.abs(relativeIndex); i++) this.playerApi.previousVideo();
             return;
           }
         }
       }
 
-      // Method 2: Fallback to clicking the item directly
+      // Method 3: Fallback to clicking the item directly
       const item = queueItems[index] as HTMLElement;
 
       // Try clicking the item's play button (appears on hover)
@@ -776,6 +822,89 @@ export default createPlugin({
       // Fallback: simulate a double-click on the whole item
       const evt = new MouseEvent('dblclick', { bubbles: true, cancelable: true });
       item.dispatchEvent(evt);
+    },
+
+    handlePlayVideoId(this: any, videoId: string) {
+      if (!videoId) return;
+      try {
+        console.log('[PearConnect Renderer] Processing play request for:', videoId);
+
+        // 0. Check if we are already playing this video
+        const currentVideoId = this.playerApi?.getVideoData()?.video_id;
+        if (currentVideoId === videoId) {
+          console.log('[PearConnect Renderer] Already on this video, triggering play');
+          this.playerApi?.playVideo?.();
+          return;
+        }
+
+        // 1. Try direct player API (most reliable)
+        // Some internal YouTube players use loadVideoById or similar
+        if (this.playerApi && typeof this.playerApi.loadVideoById === 'function') {
+          console.log('[PearConnect Renderer] Using playerApi.loadVideoById');
+          this.playerApi.loadVideoById(videoId);
+          return;
+        }
+
+        // 2. Try to find the element in the current view and click it
+        const selectors = [
+          `ytmusic-play-button-renderer[video-id="${videoId}"]`,
+          `[href*="${videoId}"] ytmusic-play-button-renderer`,
+          `.ytmusic-play-button-renderer[video-id="${videoId}"]`,
+          `[video-id="${videoId}"]`,
+          `[href*="v=${videoId}"]`,
+          `[href*="${videoId}"]`
+        ];
+
+        for (const selector of selectors) {
+          const item = document.querySelector(selector);
+          if (item) {
+            console.log(`[PearConnect Renderer] Found element via "${selector}", clicking it`);
+            (item as HTMLElement).click();
+            return;
+          }
+        }
+
+        console.log('[PearConnect Renderer] Element not found and direct API failed, using SPA navigation');
+
+        // 3. Use the app's internal navigation (cleanest SPA way)
+        const app = document.querySelector<any>('ytmusic-app');
+        if (app?.navigate) {
+          console.log('[PearConnect Renderer] Calling app.navigate');
+          app.navigate(`/watch?v=${videoId}`);
+
+          // Force play after navigation settles
+          let attempts = 0;
+          const playInterval = setInterval(() => {
+            attempts++;
+            const data = this.playerApi?.getVideoData();
+            if (data?.video_id === videoId || attempts > 15) {
+              console.log(`[PearConnect Renderer] Navigation settled (attempt ${attempts}), triggering play`);
+              this.playerApi?.playVideo?.();
+              clearInterval(playInterval);
+            }
+          }, 300);
+          return;
+        }
+
+        // 4. Fallback: Simulation of a link click (SPA friendly)
+        console.log('[PearConnect Renderer] Using anchor click hack as last resort');
+        const a = document.createElement('a');
+        a.href = `/watch?v=${videoId}`;
+        a.className = 'yt-simple-endpoint';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => a.remove(), 100);
+
+        // Final fallback if nothing else happened after 2 seconds
+        setTimeout(() => {
+          if (this.playerApi?.getVideoData()?.video_id !== videoId) {
+            console.log('[PearConnect Renderer] Final fallback: forcing window.location');
+            window.location.href = `/watch?v=${videoId}`;
+          }
+        }, 2000);
+      } catch (e) {
+        console.error('[PearConnect Renderer] handlePlayVideoId error:', e);
+      }
     },
 
     // WebRTC Audio Streaming Methods

@@ -73,6 +73,10 @@ export enum MessageType {
   ADD_TO_QUEUE = 'ADD_TO_QUEUE',
   REMOVE_FROM_QUEUE = 'REMOVE_FROM_QUEUE',
   PLAY_QUEUE_ITEM = 'PLAY_QUEUE_ITEM',
+  PLAY_VIDEO_ID = 'PLAY_VIDEO_ID',
+
+  // State
+  GET_STATE = 'GET_STATE',
 
   // Discovery
   DEVICE_INFO = 'DEVICE_INFO',
@@ -90,6 +94,12 @@ export enum MessageType {
   // Lyrics
   LYRICS_UPDATE = 'LYRICS_UPDATE',
   GET_LYRICS = 'GET_LYRICS',
+
+  // Immersive
+  TOGGLE_IMMERSIVE = 'TOGGLE_IMMERSIVE',
+
+  // Client management
+  DISCONNECT = 'DISCONNECT',
 }
 
 export interface WebSocketMessage<T = unknown> {

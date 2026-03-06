@@ -13,6 +13,7 @@ export interface PearConnectConfig {
   allowPlaybackControl: boolean;
   allowPlaylistBrowsing: boolean;
   playbackTarget: PlaybackTarget;
+  tunnelEnabled: boolean;
 }
 
 export const defaultPearConnectConfig: PearConnectConfig = {
@@ -28,6 +29,7 @@ export const defaultPearConnectConfig: PearConnectConfig = {
   allowPlaybackControl: true,
   allowPlaylistBrowsing: true,
   playbackTarget: 'laptop', // Default: play on laptop only
+  tunnelEnabled: true,
 };
 
 function generateSecret(): string {

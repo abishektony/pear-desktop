@@ -689,10 +689,13 @@ export class Miniplayer {
         });
 
         this.setupButtonHandler(this.fullscreenLikeButton, () => {
-            // Try multiple selectors to find the like button
-            const likeButton = document.querySelector<HTMLElement>('#button-shape-like button') ||
-                document.querySelector<HTMLElement>('yt-button-shape.like button') ||
-                document.querySelector<HTMLElement>('ytmusic-like-button-renderer button');
+            // Try better selectors to find the actual like button, not the dislike button
+            const likeButton = document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer .like button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer yt-button-shape.like button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer tp-yt-paper-icon-button.like') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar #button-shape-like button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar yt-button-shape.like button') ||
+                document.querySelector<HTMLElement>('ytmusic-like-button-renderer .like button'); // fallback
 
             if (likeButton) {
                 // Dispatch a proper click event that works with touch
@@ -2484,20 +2487,32 @@ export class Miniplayer {
     }
 
     private updateLikeButtonState() {
-        // Check YouTube Music's like button state
-        const ytLikeButton = document.querySelector<HTMLElement>('#button-shape-like button') ||
-            document.querySelector<HTMLElement>('yt-button-shape.like button') ||
-            document.querySelector<HTMLElement>('ytmusic-like-button-renderer button');
+        if (!this.fullscreenLikeButton) return;
 
-        if (ytLikeButton && this.fullscreenLikeButton) {
-            const isLiked = ytLikeButton.getAttribute('aria-pressed') === 'true';
+        let isLiked = false;
 
-            // Update our button's appearance
-            if (isLiked) {
-                this.fullscreenLikeButton.classList.add('active');
-            } else {
-                this.fullscreenLikeButton.classList.remove('active');
+        // Try to get status from the renderer element first (most reliable)
+        const likeRenderer = document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer') || document.querySelector('ytmusic-like-button-renderer');
+        if (likeRenderer && likeRenderer.hasAttribute('like-status')) {
+            isLiked = likeRenderer.getAttribute('like-status') === 'LIKE';
+        } else {
+            // Fallback to checking the aria-pressed state of the correct button
+            const ytLikeButton = document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer .like button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer tp-yt-paper-icon-button.like') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar #button-shape-like button') ||
+                document.querySelector<HTMLElement>('ytmusic-player-bar yt-button-shape.like button') ||
+                document.querySelector<HTMLElement>('ytmusic-like-button-renderer .like button');
+
+            if (ytLikeButton) {
+                isLiked = ytLikeButton.getAttribute('aria-pressed') === 'true';
             }
+        }
+
+        // Update our button's appearance
+        if (isLiked) {
+            this.fullscreenLikeButton.classList.add('active');
+        } else {
+            this.fullscreenLikeButton.classList.remove('active');
         }
     }
 
@@ -3042,6 +3057,14 @@ export class Miniplayer {
 
             // TODO: Call the method that actually switches the display mode
             // For example: this.switchToMode(this.preferredMode);
+        }
+    }
+
+    public toggleImmersive() {
+        if (this.immersiveToggle) {
+            this.immersiveToggle.click();
+        } else if (this.immersivePlayer) {
+            this.immersivePlayer.toggle();
         }
     }
 }

@@ -1,6 +1,8 @@
 import http from 'node:http';
 import os from 'node:os';
-import { ipcMain, type BrowserWindow, type WebContents } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
+import { app, ipcMain, type BrowserWindow, type WebContents } from 'electron';
 
 import type { PearConnectConfig } from '../config';
 import { PearWebSocketServer } from './websocket-server';
@@ -16,6 +18,8 @@ export class PearConnectBackend {
   private ipcHandlersRegistered = false;
   private lastCommand: { action: string; timestamp: number } = { action: '', timestamp: 0 };
   private playbackTarget: PlaybackTarget = 'laptop';
+  private tunnel: any | null = null;
+  private tunnelUrl: string | null = null;
 
   constructor(config: PearConnectConfig, win: BrowserWindow | { webContents: WebContents }) {
     this.config = config;
@@ -30,8 +34,21 @@ export class PearConnectBackend {
       this.ipcHandlersRegistered = true;
     }
 
+    // Persist JWT secret so paired devices stay valid across restarts
+    const secretFile = path.join(app.getPath('userData'), 'pear-connect-secret.txt');
+    let persistedSecret: string | null = null;
+    try {
+      if (fs.existsSync(secretFile)) {
+        persistedSecret = fs.readFileSync(secretFile, 'utf8').trim();
+      }
+    } catch { /* ignore read errors */ }
+    if (!persistedSecret) {
+      persistedSecret = this.config.jwtSecret;
+      try { fs.writeFileSync(secretFile, persistedSecret, 'utf8'); } catch { /* ignore write errors */ }
+    }
+
     // TEMPORARY: Force enable and apply defaults for testing
-    if (!this.config.enabled || !this.config.port) {
+    if (this.config.enabled === undefined || !this.config.port) {
       this.config = {
         ...this.config, // Keep any existing config values first
         enabled: true,
@@ -39,13 +56,17 @@ export class PearConnectBackend {
         discoveryEnabled: true,
         serviceName: 'Pear Desktop',
         requireAuth: true,
-        jwtSecret: this.config.jwtSecret || 'temp-secret-' + Date.now(),
+        jwtSecret: persistedSecret,
         maxConnections: 5,
         autoSync: true,
         allowVolumeControl: true,
         allowPlaybackControl: true,
         allowPlaylistBrowsing: true,
+        tunnelEnabled: true,
       };
+    } else {
+      // Always use the persisted secret even if config is otherwise valid
+      this.config = { ...this.config, jwtSecret: persistedSecret, tunnelEnabled: this.config.tunnelEnabled ?? true };
     }
 
     // Stop existing servers if running
@@ -86,6 +107,11 @@ export class PearConnectBackend {
 
         // Start WebSocket server after HTTP server is ready
         this.startWebSocketServer();
+
+        // Start Localtunnel if enabled
+        if (this.config.tunnelEnabled) {
+          this.startTunnel(currentPort);
+        }
       });
     };
 
@@ -109,27 +135,30 @@ export class PearConnectBackend {
         // Send the correct IPC events that the app expects
         switch (action) {
           case 'PLAY':
-            this.webContents?.send('peard:play');
+            this.webContents?.send('pear-connect:playback-control', 'PLAY');
             break;
           case 'PAUSE':
-            this.webContents?.send('peard:pause');
+            this.webContents?.send('pear-connect:playback-control', 'PAUSE');
             break;
           case 'NEXT':
-            this.webContents?.send('peard:next-video');
+            this.webContents?.send('pear-connect:playback-control', 'NEXT');
             break;
           case 'PREVIOUS':
-            this.webContents?.send('peard:previous-video');
+            this.webContents?.send('pear-connect:playback-control', 'PREVIOUS');
             break;
         }
       },
       onVolumeControl: (volume) => {
-        this.webContents?.send('peard:update-volume', volume);
+        this.webContents?.send('pear-connect:volume-control', volume);
       },
       onSeek: (time) => {
-        this.webContents?.send('peard:seek-to', time);
+        this.webContents?.send('pear-connect:seek', time);
       },
       onPlayQueueItem: (index) => {
         this.webContents?.send('pear-connect:play-queue-item', index);
+      },
+      onPlayVideoId: (videoId) => {
+        this.webContents?.send('pear-connect:play-video-id', videoId);
       },
       // WebRTC Signaling - Forward to renderer
       onRTCOffer: (clientId, offer) => {
@@ -142,8 +171,11 @@ export class PearConnectBackend {
       onRTCIceCandidate: (clientId, candidate) => {
         this.webContents?.send('pear-connect:rtc-ice-candidate', { clientId, candidate });
       },
-      onGetLyrics: (clientId) => {
+      onGetLyrics: () => {
         this.webContents?.send('pear-connect:get-lyrics');
+      },
+      onToggleImmersive: () => {
+        this.webContents?.send('pear-connect:toggle-immersive');
       },
     });
     this.wsServer.start(this.httpServer);
@@ -151,6 +183,22 @@ export class PearConnectBackend {
     // Start mDNS discovery
     this.mdns = new MDNSDiscovery(this.config);
     this.mdns.start();
+  }
+
+  private async startTunnel(port: number) {
+    try {
+      const localtunnel = (await import('localtunnel')).default;
+      this.tunnel = await localtunnel({ port });
+      this.tunnelUrl = this.tunnel.url;
+      console.log(`PearConnect tunnel is running at: ${this.tunnel.url}`);
+
+      this.tunnel.on('close', () => {
+        console.log('PearConnect tunnel closed');
+        this.tunnelUrl = null;
+      });
+    } catch (e) {
+      console.error('Failed to start localtunnel:', e);
+    }
   }
 
   stop() {
@@ -167,6 +215,12 @@ export class PearConnectBackend {
     if (this.httpServer) {
       this.httpServer.close();
       this.httpServer = null;
+    }
+
+    if (this.tunnel) {
+      this.tunnel.close();
+      this.tunnel = null;
+      this.tunnelUrl = null;
     }
   }
 
@@ -1244,11 +1298,14 @@ class PearConnectClient {
                 this.connectBtn.textContent = 'Connect';
                 this.hideError();
                 
-                // Request initial queue after successful auth
-                console.log('[Pear Connect Client] Auth successful, requesting initial queue...');
+                // Request initial state and queue after successful auth
+                console.log('[Pear Connect Client] Auth successful, requesting initial state...');
+                // State is pushed automatically by server on auth, but also request explicitly
+                // as a safety measure (short delay to ensure server has registered the client)
                 setTimeout(() => {
+                    this.sendMessage({ type: 'GET_STATE', timestamp: Date.now() });
                     this.sendMessage({ type: 'GET_QUEUE', timestamp: Date.now() });
-                }, 500);
+                }, 300);
                 
                 if (resolve) resolve();
                 break;
@@ -1917,7 +1974,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcMain.handle('pear-connect:get-server-info', () => {
       return {
         port: this.config.port,
-        ip: this.getLocalIP()
+        ip: this.getLocalIP(),
+        tunnelUrl: this.tunnelUrl
       };
     });
 

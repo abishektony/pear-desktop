@@ -146,6 +146,11 @@ export default createPlugin({
                 this.miniplayer.setPlayerApi(playerApi);
             }
             document.body.appendChild(this.miniplayer.getElement());
+
+            const { ipcRenderer } = await import('electron');
+            ipcRenderer.on('pear-connect:toggle-immersive', () => {
+                this.miniplayer?.toggleImmersive();
+            });
         },
 
         stop(this: any) {

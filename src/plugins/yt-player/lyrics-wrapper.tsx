@@ -43,4 +43,25 @@ ensureCompactRendererMounted();
 
 // Export the current lyric data for external use
 export { getCurrentLyricText, currentLyricData };
+import { currentLyrics } from '../synced-lyrics/renderer/store';
+import { canonicalize, romanize, simplifyUnicode } from '../synced-lyrics/renderer/utils';
 
+export function getAllLyrics() {
+    const state = currentLyrics();
+    if (state && state.state === 'done' && state.data && state.data.lines) {
+        return state.data.lines;
+    }
+    return [];
+}
+
+export async function getRomanizedLyric(text: string): Promise<string | null> {
+    if (!text) return null;
+    const input = canonicalize(text);
+    const result = await romanize(input);
+    const romanized = canonicalize(result);
+
+    if (simplifyUnicode(text) !== simplifyUnicode(romanized)) {
+        return romanized;
+    }
+    return null;
+}
