@@ -39,6 +39,12 @@ export class ImmersivePlayer {
     private nextSongArtist: string = '';
     private nextSongImage: string = '';
 
+    // Mini album art & time display
+    private miniThumbElement: HTMLElement | null = null;
+    private timeCurrentElement: HTMLElement | null = null;
+    private timeDurationElement: HTMLElement | null = null;
+    private timeUpdateInterval: number | null = null;
+
     private boundResizeHandler: (() => void) | null = null;
 
     constructor(fullscreenPlayer: HTMLElement) {
@@ -255,6 +261,7 @@ export class ImmersivePlayer {
 
         this.stopLyricsLoop();
         this.stopNextSongCheck();
+        this.stopTimeUpdate();
         this.restoreElements();
 
         const btn = document.getElementById('pear-immersive-toggle');
@@ -342,6 +349,18 @@ export class ImmersivePlayer {
         const bottomBar = document.createElement('div');
         bottomBar.className = 'pear-immersive-bottom-bar';
 
+        // Time display row (below seek bar)
+        const timeRow = document.createElement('div');
+        timeRow.className = 'pear-immersive-time-row';
+        this.timeCurrentElement = document.createElement('span');
+        this.timeCurrentElement.className = 'pear-immersive-time';
+        this.timeCurrentElement.textContent = '0:00';
+        this.timeDurationElement = document.createElement('span');
+        this.timeDurationElement.className = 'pear-immersive-time';
+        this.timeDurationElement.textContent = '0:00';
+        timeRow.appendChild(this.timeCurrentElement);
+        timeRow.appendChild(this.timeDurationElement);
+
         const controlsRow = document.createElement('div');
         controlsRow.className = 'pear-immersive-controls-row';
 
@@ -357,10 +376,16 @@ export class ImmersivePlayer {
         controlsRow.appendChild(leftGroup);
         controlsRow.appendChild(centerGroup);
         controlsRow.appendChild(rightGroup);
+        bottomBar.appendChild(timeRow);
         bottomBar.appendChild(controlsRow);
         this.immersiveContainer.appendChild(bottomBar);
 
         this.fullscreenPlayer.appendChild(this.immersiveContainer);
+
+        // Mini album art thumbnail
+        this.miniThumbElement = document.createElement('div');
+        this.miniThumbElement.className = 'pear-immersive-mini-thumb';
+        leftGroup.appendChild(this.miniThumbElement);
 
         // Move Elements
         // Create a wrapper for text so we can align like button next to it
@@ -507,6 +532,9 @@ export class ImmersivePlayer {
         this.moveElement('#pear-fullscreen-close', rightGroup);
 
         this.moveElement('#pear-fullscreen-seek', bottomBar, true);
+
+        // Start time update interval
+        this.startTimeUpdate();
     }
 
     private moveElement(selector: string, target: HTMLElement, prepend: boolean = false) {
@@ -554,6 +582,9 @@ export class ImmersivePlayer {
         this.currentLines = [];
         this.userScrollOffset = 0;
         this.nextSongIndicator = null;
+        this.miniThumbElement = null;
+        this.timeCurrentElement = null;
+        this.timeDurationElement = null;
     }
 
     // --- Lyrics Logic ---
@@ -817,6 +848,50 @@ export class ImmersivePlayer {
             this.lyricsInterval = null;
         }
     }
+
+    // --- Time Display Logic ---
+    private formatTime(seconds: number): string {
+        if (!isFinite(seconds) || seconds < 0) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    private startTimeUpdate() {
+        if (this.timeUpdateInterval) clearInterval(this.timeUpdateInterval);
+        this.timeUpdateInterval = window.setInterval(() => {
+            const video = document.querySelector('video');
+            if (!video) return;
+
+            // Update time labels
+            if (this.timeCurrentElement) {
+                this.timeCurrentElement.textContent = this.formatTime(video.currentTime);
+            }
+            if (this.timeDurationElement) {
+                this.timeDurationElement.textContent = this.formatTime(video.duration);
+            }
+
+            // Update mini album art
+            if (this.miniThumbElement) {
+                const src = this.getThumbnailUrl();
+                if (src) {
+                    const currentBg = this.miniThumbElement.style.backgroundImage;
+                    const newBg = `url('${src}')`;
+                    if (currentBg !== newBg) {
+                        this.miniThumbElement.style.backgroundImage = newBg;
+                    }
+                }
+            }
+        }, 500);
+    }
+
+    private stopTimeUpdate() {
+        if (this.timeUpdateInterval) {
+            clearInterval(this.timeUpdateInterval);
+            this.timeUpdateInterval = null;
+        }
+    }
+
 
     // --- Next Song Logic ---
     private startNextSongCheck() {
