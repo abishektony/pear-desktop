@@ -730,6 +730,7 @@ video.pear-immersive-video {
         gap: 8px;
         z-index: 3000;
         display: grid;
+        justify-items: center;
         pointer-events: auto;
     }
 
@@ -741,10 +742,30 @@ video.pear-immersive-video {
         transition: all 0.5s ease, visibility 0s;
         pointer-events: auto;
         display: grid;
+        justify-items: center;
     }
 
     .pear-immersive-group.right .pear-fullscreen-volume {
-        display: none !important;
+        display: flex !important;
+        flex-direction: column-reverse;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    .pear-immersive-group.right .pear-fullscreen-volume .pear-fullscreen-volume-slider-container {
+        height: 80px;
+        width: 36px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .pear-immersive-group.right .pear-fullscreen-volume .pear-fullscreen-volume-slider {
+        -webkit-appearance: slider-vertical;
+        width: 8px;
+        height: 80px;
+        transform: none;
     }
 
     .pear-immersive-group.center button {

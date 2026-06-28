@@ -26,6 +26,7 @@ export interface PlaybackState {
   queuePosition: number;
   queueLength: number;
   playbackTarget?: PlaybackTarget;
+  timestamp: number;
 }
 
 export interface TrackInfo {

@@ -8,7 +8,7 @@ import { PearConnectUIManager } from './ui/manager';
 import type { MenuContext, BackendContext } from '@/types/contexts';
 
 import type { PearConnectConfig } from './config';
-import type { PlaybackState, QueueItem } from './types';
+import type { PlaybackState, QueueItem, TrackInfo } from './types';
 import type { RendererContext } from '@/types/contexts';
 import type { MusicPlayer } from '@/types/music-player';
 
@@ -45,7 +45,7 @@ export default createPlugin({
       onConfigChange(newConfig: PearConnectConfig) {
         backendInstance?.onConfigChange(newConfig);
       },
-      onPlayVideoId: (videoId) => {
+      onPlayVideoId: (videoId: string) => {
         console.log('[PearConnect Backend] Forwarding play-video-id to renderer:', videoId);
         if (win.webContents) {
           win.webContents.send('pear-connect:play-video-id', videoId);
@@ -95,10 +95,10 @@ export default createPlugin({
       });
 
       // Listen for play video id request (from remote client)
-      ipc.on('pear-connect:play-video-id', (videoId: string) => {
-        console.log('[PearConnect Renderer] Received IPC: pear-connect:play-video-id', videoId);
+      ipc.on('pear-connect:play-video-id', (payload: any) => {
+        console.log('[PearConnect Renderer] Received IPC: pear-connect:play-video-id', typeof payload === 'object' ? payload.videoId : payload);
         try {
-          (this as any).handlePlayVideoId(videoId);
+          (this as any).handlePlayVideoId(payload);
         } catch (error) {
           console.error('[PearConnect Renderer] Error handling play-video-id:', error);
         }
@@ -138,6 +138,18 @@ export default createPlugin({
         // If switching to phone or both, ensure audio streaming is active
         if (target === 'phone' || target === 'both') {
           (this as any).setupAudioCapture();
+        }
+      });
+
+      // Listen for external state updates (from mobile devices)
+      ipc.on('pear-connect:external-state-update', (state: PlaybackState) => {
+        console.log('[PearConnect Renderer] Received external state update', state.trackInfo?.title);
+        // Only update local UI cache, the Sidebar/Dialog uses its own connection
+        this.lastState = state;
+        
+        // Optionally update top player bar if we're in phone mode
+        if ((this as any).playbackTarget === 'phone') {
+           (this as any).updateUIMirroring(state);
         }
       });
 
@@ -196,30 +208,32 @@ export default createPlugin({
     onPlayerApiReady(playerApi) {
       this.playerApi = playerApi;
 
-      // Listen to state changes
+      // Listen to player state changes
       this.playerApi.addEventListener('onStateChange', () => {
         (this as any).sendStateUpdate();
-        // Also update queue on state change (e.g., track ended, skipped)
         (this as any).sendQueueUpdate();
       });
 
-      // Listen to video changes to update queue immediately
+      // Listen to video changes
       this.playerApi.addEventListener('videodatachange', () => {
-        // Update state immediately
         (this as any).sendStateUpdate();
-        // Update queue immediately (no delay)
         (this as any).sendQueueUpdate();
-
-        // Backup updates in case DOM wasn't ready (image/title update delay)
-        // This ensures the UI eventually shows the correct song info if DOM was stale
-        setTimeout(() => (this as any).sendStateUpdate(), 500);
+        // Backup for DOM settlement
         setTimeout(() => (this as any).sendStateUpdate(), 1000);
-        setTimeout(() => (this as any).sendStateUpdate(), 2000);
-
-        // Backup update for queue
-        setTimeout(() => (this as any).sendQueueUpdate(), 100);
-        setTimeout(() => (this as any).sendQueueUpdate(), 1000);
       });
+
+      // Direct video listeners for volume/seeking
+      const setupVideoListeners = () => {
+        const video = document.querySelector('video');
+        if (video) {
+          ['volumechange', 'seeked', 'play', 'pause'].forEach(ev =>
+            video.addEventListener(ev, () => (this as any).sendStateUpdate())
+          );
+        } else {
+          setTimeout(setupVideoListeners, 2000);
+        }
+      };
+      setupVideoListeners();
     },
 
     stop() {
@@ -493,15 +507,8 @@ export default createPlugin({
     },
 
     startStateMonitoring(this: any) {
-      // Update state every second
-      this.updateInterval = window.setInterval(() => {
-        this.sendStateUpdate();
-      }, 1000);
-
-      // Sync queue every 5 seconds to catch any missed updates (reduced from 10s)
-      this.queueSyncInterval = window.setInterval(() => {
-        this.sendQueueUpdate();
-      }, 5000);
+      // Send initial state
+      setTimeout(() => this.sendStateUpdate(), 1000);
     },
 
     startQueueMonitoring(this: any) {
@@ -566,18 +573,37 @@ export default createPlugin({
     sendStateUpdate(this: any) {
       if (!this.playerApi) return;
 
+      const now = Date.now();
+      const isPlaying = this.playerApi.getPlayerState() === 1;
+      const currentTime = this.playerApi.getCurrentTime() ?? 0;
+      const duration = this.playerApi.getDuration() ?? 0;
+      const volume = this.playerApi.getVolume() ?? 100;
+      const trackInfo = this.getCurrentTrackInfo();
+
       const state: PlaybackState = {
-        isPlaying: this.playerApi.getPlayerState() === 1,
-        currentTime: this.playerApi.getCurrentTime() ?? 0,
-        duration: this.playerApi.getDuration() ?? 0,
-        volume: this.playerApi.getVolume() ?? 100,
+        isPlaying,
+        currentTime,
+        duration,
+        volume,
         queuePosition: 0,
         queueLength: 0,
-        trackInfo: this.getCurrentTrackInfo(),
+        trackInfo,
+        timestamp: now,
       };
 
-      // Only send if state changed
-      if (JSON.stringify(state) !== JSON.stringify(this.lastState)) {
+      if (!this.lastState) {
+        this.lastState = state;
+        this.ipc?.send('pear-connect:state-update', state);
+        return;
+      }
+
+      // Major changes check - strict event-driven push
+      const trackChanged = state.trackInfo?.videoId !== this.lastState.trackInfo?.videoId;
+      const playStateChanged = state.isPlaying !== this.lastState.isPlaying;
+      const volumeChanged = Math.abs(state.volume - this.lastState.volume) > 1;
+      const seekDetected = Math.abs(state.currentTime - this.lastState.currentTime) > 1;
+
+      if (trackChanged || playStateChanged || volumeChanged || seekDetected) {
         this.lastState = state;
         this.ipc?.send('pear-connect:state-update', state);
       }
@@ -824,10 +850,33 @@ export default createPlugin({
       item.dispatchEvent(evt);
     },
 
-    handlePlayVideoId(this: any, videoId: string) {
-      if (!videoId) return;
+    handlePlayVideoId(this: any, payload: string | { videoId: string, trackInfo?: TrackInfo }) {
+      if (!payload) return;
+      const videoId = typeof payload === 'string' ? payload : payload.videoId;
+      const trackInfo = typeof payload === 'object' ? payload.trackInfo : undefined;
+
       try {
         console.log('[PearConnect Renderer] Processing play request for:', videoId);
+
+        // Optimistic UI update if trackInfo is provided
+        if (trackInfo) {
+          console.log('[PearConnect Renderer] Using optimistic metadata:', trackInfo.title);
+          const optimisticState: PlaybackState = {
+            isPlaying: true,
+            currentTime: 0,
+            duration: trackInfo.duration,
+            volume: this.lastState?.volume ?? 100,
+            trackInfo: trackInfo,
+            queuePosition: 0,
+            queueLength: 0,
+            timestamp: Date.now()
+          };
+          this.lastState = optimisticState;
+          // Trigger any UI mirroring if active
+          if (this.playbackTarget === 'phone') {
+            this.updateUIMirroring(optimisticState);
+          }
+        }
 
         // 0. Check if we are already playing this video
         const currentVideoId = this.playerApi?.getVideoData()?.video_id;
@@ -1030,6 +1079,33 @@ export default createPlugin({
       if (pc) {
         pc.close();
         this.peerConnections.delete(clientId);
+      }
+    },
+
+    updateUIMirroring(this: any, state: PlaybackState) {
+      if (!state.trackInfo) return;
+      
+      console.log('[PearConnect Renderer] Mirroring UI for:', state.trackInfo.title);
+      
+      // Update main player bar elements if they exist
+      const titleEl = document.querySelector('ytmusic-player-bar .title') as HTMLElement;
+      const artistEl = document.querySelector('ytmusic-player-bar .byline yt-formatted-string') as HTMLElement 
+                      || document.querySelector('ytmusic-player-bar .byline') as HTMLElement;
+      const thumbEl = document.querySelector('ytmusic-player-bar .image, .player-bar .image') as HTMLImageElement;
+      
+      if (titleEl) titleEl.textContent = state.trackInfo.title;
+      if (artistEl) artistEl.textContent = state.trackInfo.artist;
+      if (thumbEl) {
+         const img = thumbEl.querySelector('img') || thumbEl;
+         if (img instanceof HTMLImageElement && state.trackInfo.thumbnail) {
+           img.src = state.trackInfo.thumbnail;
+         }
+      }
+
+      // Update progress bar
+      const progressBar = document.querySelector('ytmusic-player-bar #progress-bar') as any;
+      if (progressBar && state.duration > 0) {
+        progressBar.value = (state.currentTime / state.duration) * 100;
       }
     },
   },

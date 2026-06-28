@@ -7,12 +7,11 @@ import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import type {
   RemoteClient,
   WebSocketMessage,
-  MessageType,
   AuthRequest,
   PlaybackState,
   QueueItem,
-  PlaybackTarget,
 } from '../types';
+import { MessageType, type PlaybackTarget } from '../types';
 import type { PearConnectConfig } from '../config';
 
 const SUPABASE_URL = "https://yalwnibhsrmhomjifwdb.supabase.co";
@@ -36,6 +35,9 @@ export class PearWebSocketServer {
   private onRTCIceCandidate?: (clientId: string, candidate: unknown) => void;
   private onGetLyrics?: (clientId: string) => void;
   private onToggleImmersive?: () => void;
+  private onSetPlaybackTarget?: (target: PlaybackTarget) => void;
+  private onExternalStateUpdate?: (state: PlaybackState) => void;
+  private onExternalQueueUpdate?: (queue: QueueItem[]) => void;
 
   private supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   private supabaseChannel: RealtimeChannel | null = null;
@@ -57,6 +59,9 @@ export class PearWebSocketServer {
     onRTCIceCandidate?: (clientId: string, candidate: unknown) => void;
     onGetLyrics?: (clientId: string) => void;
     onToggleImmersive?: () => void;
+    onSetPlaybackTarget?: (target: PlaybackTarget) => void;
+    onExternalStateUpdate?: (state: PlaybackState) => void;
+    onExternalQueueUpdate?: (queue: QueueItem[]) => void;
   }) {
     this.onPlaybackControl = callbacks.onPlaybackControl;
     this.onVolumeControl = callbacks.onVolumeControl;
@@ -68,6 +73,9 @@ export class PearWebSocketServer {
     this.onRTCIceCandidate = callbacks.onRTCIceCandidate;
     this.onGetLyrics = callbacks.onGetLyrics;
     this.onToggleImmersive = callbacks.onToggleImmersive;
+    this.onSetPlaybackTarget = callbacks.onSetPlaybackTarget;
+    this.onExternalStateUpdate = callbacks.onExternalStateUpdate;
+    this.onExternalQueueUpdate = callbacks.onExternalQueueUpdate;
   }
 
   start(server: Server) {
@@ -251,6 +259,18 @@ export class PearWebSocketServer {
 
         case 'DISCONNECT':
           this.handleDisconnect(clientId);
+          break;
+
+        case 'STATE_UPDATE':
+          this.handleIncomingStateUpdate(clientId, message.payload as PlaybackState);
+          break;
+
+        case 'QUEUE_UPDATE':
+          this.handleIncomingQueueUpdate(clientId, message.payload as QueueItem[]);
+          break;
+
+        case 'SET_PLAYBACK_TARGET':
+          this.handleIncomingSetPlaybackTarget(client!, message.payload as PlaybackTarget);
           break;
 
         default:
@@ -496,14 +516,14 @@ export class PearWebSocketServer {
 
   private handlePlayVideoId(
     clientData: { ws: WebSocket | 'supabase'; client: RemoteClient },
-    videoId: string
+    payload: any
   ) {
     if (!clientData.client.permissions.playback) {
       this.sendError(clientData.ws, 'No playback permission');
       return;
     }
     if (this.onPlayVideoId) {
-      this.onPlayVideoId(videoId);
+      this.onPlayVideoId(payload);
     }
   }
 
@@ -519,6 +539,47 @@ export class PearWebSocketServer {
     if (this.onPlayQueueItem) {
       this.onPlayQueueItem(index);
     }
+  }
+
+  private handleIncomingStateUpdate(clientId: string, state: PlaybackState) {
+    // console.log(`[PearConnect] Received external STATE_UPDATE from client ${clientId}`);
+    this.lastState = state;
+    // Notify local renderer
+    if (this.onExternalStateUpdate) this.onExternalStateUpdate(state);
+    
+    // Broadcast to other clients (except the source)
+    this.clients.forEach(({ ws, client }, id) => {
+      if (id !== clientId && client.authenticated) {
+        this.sendMessage(ws, {
+          type: MessageType.STATE_UPDATE,
+          payload: state,
+          timestamp: Date.now(),
+        });
+      }
+    });
+  }
+
+  private handleIncomingQueueUpdate(clientId: string, queue: QueueItem[]) {
+    // console.log(`[PearConnect] Received external QUEUE_UPDATE from client ${clientId}`);
+    this.lastQueue = queue;
+    // Notify local renderer
+    if (this.onExternalQueueUpdate) this.onExternalQueueUpdate(queue);
+    
+    // Broadcast to other clients (except the source)
+    this.clients.forEach(({ ws, client }, id) => {
+      if (id !== clientId && client.authenticated && client.permissions.queue) {
+        this.sendMessage(ws, {
+          type: MessageType.QUEUE_UPDATE,
+          payload: queue,
+          timestamp: Date.now(),
+        });
+      }
+    });
+  }
+
+  private handleIncomingSetPlaybackTarget(clientData: { ws: WebSocket | 'supabase'; client: RemoteClient }, target: PlaybackTarget) {
+    if (this.onSetPlaybackTarget) this.onSetPlaybackTarget(target);
+    this.broadcastPlaybackTarget(target);
   }
 
   private handleDisconnect(clientId: string) {
@@ -611,8 +672,11 @@ export class PearWebSocketServer {
     // Cache it (already below, but update this override)
     this.lastState = state;
 
-    if (!this.config.autoSync) return;
+    if (this.config.autoSync === false) {
+      return;
+    }
 
+    // console.log(`[PearConnect Backend] Broadcasting state to ${this.clients.size} clients`);
     this.clients.forEach(({ ws, client }) => {
       if (client.authenticated) {
         this.sendMessage(ws, {
@@ -703,8 +767,82 @@ export class PearWebSocketServer {
   disconnectClient(clientId: string) {
     const client = this.clients.get(clientId);
     if (client) {
-      if (client.ws !== 'supabase') client.ws.close();
+      console.log(`[PearConnect] Manually disconnecting client ${clientId}`);
+      // Notify the client before closing
+      this.sendMessage(client.ws, {
+        type: MessageType.DISCONNECT,
+        timestamp: Date.now(),
+      });
+
+      if (client.ws !== 'supabase') {
+        // give it a tiny bit of time to send the message above
+        setTimeout(() => {
+          if (client.ws !== 'supabase') client.ws.close();
+        }, 100);
+      }
       this.clients.delete(clientId);
+    }
+  }
+
+  broadcastState(state: PlaybackState) {
+    this.lastState = state;
+    this.clients.forEach(({ ws, client }) => {
+      if (client.authenticated) {
+        this.sendMessage(ws, {
+          type: MessageType.STATE_UPDATE,
+          payload: state,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    if (this.supabaseChannel) {
+      this.sendMessage('supabase', {
+        type: MessageType.STATE_UPDATE,
+        payload: state,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  broadcastQueue(queue: QueueItem[]) {
+    this.lastQueue = queue;
+    this.clients.forEach(({ ws, client }) => {
+      if (client.authenticated && client.permissions.queue) {
+        this.sendMessage(ws, {
+          type: MessageType.QUEUE_UPDATE,
+          payload: queue,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    if (this.supabaseChannel) {
+      this.sendMessage('supabase', {
+        type: MessageType.QUEUE_UPDATE,
+        payload: queue,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  broadcastPlaybackTarget(target: PlaybackTarget) {
+    this.clients.forEach(({ ws, client }) => {
+      if (client.authenticated) {
+        this.sendMessage(ws, {
+          type: MessageType.SET_PLAYBACK_TARGET,
+          payload: target,
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    if (this.supabaseChannel) {
+      this.sendMessage('supabase', {
+        type: MessageType.SET_PLAYBACK_TARGET,
+        payload: target,
+        timestamp: Date.now(),
+      });
     }
   }
 }

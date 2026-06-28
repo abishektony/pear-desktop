@@ -3,7 +3,6 @@ import type { PlaybackTarget } from './types';
 export interface PearConnectConfig {
   enabled: boolean;
   port: number;
-  discoveryEnabled: boolean;
   serviceName: string;
   requireAuth: boolean;
   jwtSecret: string;
@@ -13,13 +12,11 @@ export interface PearConnectConfig {
   allowPlaybackControl: boolean;
   allowPlaylistBrowsing: boolean;
   playbackTarget: PlaybackTarget;
-  tunnelEnabled: boolean;
 }
 
 export const defaultPearConnectConfig: PearConnectConfig = {
   enabled: true,
   port: 8888,
-  discoveryEnabled: true,
   serviceName: 'Pear Desktop',
   requireAuth: true,
   jwtSecret: generateSecret(),
@@ -29,7 +26,6 @@ export const defaultPearConnectConfig: PearConnectConfig = {
   allowPlaybackControl: true,
   allowPlaylistBrowsing: true,
   playbackTarget: 'laptop', // Default: play on laptop only
-  tunnelEnabled: true,
 };
 
 function generateSecret(): string {

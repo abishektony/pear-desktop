@@ -129,23 +129,17 @@ export class PearConnectUIManager {
   private async update() {
     try {
       // Get server info from backend
-      const serverInfo = await this.ipc.invoke('pear-connect:get-server-info') as { port: number; ip: string; tunnelUrl?: string } | null;
+      const serverInfo = await this.ipc.invoke('pear-connect:get-server-info') as { port: number; ip: string } | null;
       if (!serverInfo) return;
 
-      const { port, ip: localIP, tunnelUrl } = serverInfo;
-      let url = tunnelUrl || `http://${localIP}:${port}`;
+      const { port, ip: localIP } = serverInfo;
+      const url = `http://${localIP}:${port}`;
 
       // Update UI
-      if (this.portElement) this.portElement.textContent = tunnelUrl ? "Tunnel Active" : port.toString();
-      if (this.urlElement) {
-        if (tunnelUrl) {
-          this.urlElement.innerHTML = `<span style="color: var(--primary-light)">${tunnelUrl}</span><br><span style="font-size: 0.8em; opacity: 0.6">Local: http://${localIP}:${port}</span>`;
-        } else {
-          this.urlElement.textContent = url;
-        }
-      }
+      if (this.portElement) this.portElement.textContent = port.toString();
+      if (this.urlElement) this.urlElement.textContent = url;
 
-      let qrUrl = url; // Will be updated with code + fallback params below
+      let qrUrl = url;
 
       // Get pending pairings
       const pendingPairings = await this.ipc.invoke('pear-connect:get-pending-pairings') as Array<{
@@ -160,11 +154,7 @@ export class PearConnectUIManager {
           this.pairingCodeElement.textContent = pairing.code;
         }
 
-        if (tunnelUrl) {
-          qrUrl = `${tunnelUrl}?code=${pairing.code}&localIp=${localIP}&localPort=${port}`;
-        } else {
-          qrUrl = `http://${localIP}:${port}?code=${pairing.code}`;
-        }
+        qrUrl = `http://${localIP}:${port}?code=${pairing.code}`;
 
         const timeLeft = Math.max(0, Math.floor((pairing.expiresAt - Date.now()) / 1000));
         if (this.pairingTimerElement) {
@@ -185,7 +175,7 @@ export class PearConnectUIManager {
 
       // Generate QR code
       if (this.qrCanvas) {
-        await QRCode.toCanvas(this.qrCanvas, qrUrl ?? url, {
+        await QRCode.toCanvas(this.qrCanvas, qrUrl, {
           width: 200,
           margin: 2,
           color: {

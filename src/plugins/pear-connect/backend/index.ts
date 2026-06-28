@@ -6,20 +6,16 @@ import { app, ipcMain, type BrowserWindow, type WebContents } from 'electron';
 
 import type { PearConnectConfig } from '../config';
 import { PearWebSocketServer } from './websocket-server';
-import { MDNSDiscovery } from './mdns-discovery';
 import type { PlaybackState, QueueItem, RemoteClient, PlaybackTarget } from '../types';
 
 export class PearConnectBackend {
   private config: PearConnectConfig;
   private httpServer: http.Server | null = null;
   private wsServer: PearWebSocketServer | null = null;
-  private mdns: MDNSDiscovery | null = null;
   private webContents: WebContents | null = null;
   private ipcHandlersRegistered = false;
   private lastCommand: { action: string; timestamp: number } = { action: '', timestamp: 0 };
   private playbackTarget: PlaybackTarget = 'laptop';
-  private tunnel: any | null = null;
-  private tunnelUrl: string | null = null;
 
   constructor(config: PearConnectConfig, win: BrowserWindow | { webContents: WebContents }) {
     this.config = config;
@@ -47,13 +43,12 @@ export class PearConnectBackend {
       try { fs.writeFileSync(secretFile, persistedSecret, 'utf8'); } catch { /* ignore write errors */ }
     }
 
-    // TEMPORARY: Force enable and apply defaults for testing
+    // Force enable and apply defaults for testing
     if (this.config.enabled === undefined || !this.config.port) {
       this.config = {
-        ...this.config, // Keep any existing config values first
+        ...this.config,
         enabled: true,
         port: 8888,
-        discoveryEnabled: true,
         serviceName: 'Pear Desktop',
         requireAuth: true,
         jwtSecret: persistedSecret,
@@ -62,11 +57,9 @@ export class PearConnectBackend {
         allowVolumeControl: true,
         allowPlaybackControl: true,
         allowPlaylistBrowsing: true,
-        tunnelEnabled: true,
       };
     } else {
-      // Always use the persisted secret even if config is otherwise valid
-      this.config = { ...this.config, jwtSecret: persistedSecret, tunnelEnabled: this.config.tunnelEnabled ?? true };
+      this.config = { ...this.config, jwtSecret: persistedSecret };
     }
 
     // Stop existing servers if running
@@ -107,11 +100,6 @@ export class PearConnectBackend {
 
         // Start WebSocket server after HTTP server is ready
         this.startWebSocketServer();
-
-        // Start Localtunnel if enabled
-        if (this.config.tunnelEnabled) {
-          this.startTunnel(currentPort);
-        }
       });
     };
 
@@ -157,8 +145,8 @@ export class PearConnectBackend {
       onPlayQueueItem: (index) => {
         this.webContents?.send('pear-connect:play-queue-item', index);
       },
-      onPlayVideoId: (videoId) => {
-        this.webContents?.send('pear-connect:play-video-id', videoId);
+      onPlayVideoId: (payload: any) => {
+        this.webContents?.send('pear-connect:play-video-id', payload);
       },
       // WebRTC Signaling - Forward to renderer
       onRTCOffer: (clientId, offer) => {
@@ -177,29 +165,21 @@ export class PearConnectBackend {
       onToggleImmersive: () => {
         this.webContents?.send('pear-connect:toggle-immersive');
       },
+      onSetPlaybackTarget: (target) => {
+        this.playbackTarget = target;
+        this.webContents?.send('pear-connect:playback-target-changed', target);
+      },
+      onExternalStateUpdate: (state) => {
+        this.webContents?.send('pear-connect:external-state-update', state);
+      },
+      onExternalQueueUpdate: (queue) => {
+        this.webContents?.send('pear-connect:external-queue-update', queue);
+      },
     });
     this.wsServer.start(this.httpServer);
-
-    // Start mDNS discovery
-    this.mdns = new MDNSDiscovery(this.config);
-    this.mdns.start();
   }
 
-  private async startTunnel(port: number) {
-    try {
-      const localtunnel = (await import('localtunnel')).default;
-      this.tunnel = await localtunnel({ port });
-      this.tunnelUrl = this.tunnel.url;
-      console.log(`PearConnect tunnel is running at: ${this.tunnel.url}`);
 
-      this.tunnel.on('close', () => {
-        console.log('PearConnect tunnel closed');
-        this.tunnelUrl = null;
-      });
-    } catch (e) {
-      console.error('Failed to start localtunnel:', e);
-    }
-  }
 
   stop() {
     if (this.wsServer) {
@@ -207,20 +187,9 @@ export class PearConnectBackend {
       this.wsServer = null;
     }
 
-    if (this.mdns) {
-      this.mdns.stop();
-      this.mdns = null;
-    }
-
     if (this.httpServer) {
       this.httpServer.close();
       this.httpServer = null;
-    }
-
-    if (this.tunnel) {
-      this.tunnel.close();
-      this.tunnel = null;
-      this.tunnelUrl = null;
     }
   }
 
@@ -638,55 +607,74 @@ export class PearConnectBackend {
       
       /* Volume */
       .volume-section { 
-        display: flex; 
-        align-items: center; 
+        position: fixed;
+        right: 8px;
+        top: 25%;
+        height: 240px;
+        display: none;
+        flex-direction: column;
+        align-items: center;
         gap: 12px;
-        margin-bottom: 24px;
-        flex-shrink: 0;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 16px 6px;
+        border-radius: 30px;
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        transition: opacity 0.3s;
+      }
+
+      .player-card.active ~ .volume-section {
+        display: flex;
       }
       
       .volume-icon { 
-        width: 20px; 
-        height: 20px; 
-        fill: var(--text-secondary);
+        width: 16px; 
+        height: 16px; 
+        fill: var(--text-primary);
         flex-shrink: 0;
+        opacity: 0.8;
       }
       
-      .volume-slider {
+      .volume-slider-container {
         flex: 1;
+        width: 32px;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .volume-slider {
+        position: absolute;
+        width: 160px;
+        height: 4px;
         -webkit-appearance: none;
         appearance: none;
-        height: 4px;
-        border-radius: 2px;
         background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
         outline: none;
+        transform: rotate(-90deg);
+        cursor: pointer;
       }
       
       .volume-slider::-webkit-slider-thumb {
         -webkit-appearance: none;
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
         background: var(--text-primary);
         cursor: pointer;
-        box-shadow: 0 0 8px var(--glow);
-      }
-      
-      .volume-slider::-moz-range-thumb {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: var(--text-primary);
-        cursor: pointer;
-        border: none;
+        box-shadow: 0 0 10px var(--glow);
+        border: 2px solid var(--primary);
       }
       
       .volume-value {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        min-width: 36px;
-        text-align: right;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-align: center;
       }
       
       /* Error */
@@ -828,7 +816,19 @@ export class PearConnectBackend {
       
       /* Mobile optimizations */
       @media (max-width: 400px) {
-        .container { padding: 16px; }
+        .container { padding: 12px; }
+        .target-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          background: rgba(0, 255, 136, 0.1);
+          border: 1px solid rgba(0, 255, 136, 0.3);
+          border-radius: 12px;
+          color: #00ff88;
+          font-size: 11px;
+          font-weight: 600;
+          margin-top: 8px;
+          margin-bottom: 16px;
+        }
         .thumbnail-container { width: 220px; height: 220px; }
         .track-title { font-size: 20px; }
         .controls { gap: 16px; }
@@ -902,6 +902,7 @@ export class PearConnectBackend {
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">Disconnected</span>
           </div>
+          <div id="targetBadge" class="target-badge" style="display: none;">PHONE MODE</div>
         </div>
         <div id="errorMessage" class="error-message"></div>
         <div id="authCard" class="auth-card">
@@ -952,12 +953,14 @@ export class PearConnectBackend {
               <svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
             </button>
           </div>
-          <div class="volume-section">
+          <div class="volume-section" id="volumeSection">
+            <span class="volume-value" id="volumeValue">100%</span>
+            <div class="volume-slider-container">
+              <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+            </div>
             <svg class="volume-icon" viewBox="0 0 24 24">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
             </svg>
-            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
-            <span class="volume-value" id="volumeValue">100%</span>
           </div>
           <div class="queue-section">
             <div class="queue-header">
@@ -1003,6 +1006,7 @@ class PearConnectClient {
         this.loadDeviceName();
         this.initMediaSession();
         this.initVisualizer();
+        this.startInterpolation();
         
         // Check for pairing code in URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -1062,6 +1066,7 @@ class PearConnectClient {
         this.lyricsSection = document.getElementById('lyricsSection');
         this.lyricsCurrent = document.getElementById('lyricsCurrent');
         this.lyricsNext = document.getElementById('lyricsNext');
+        this.targetBadge = document.getElementById('targetBadge');
         this.lyricsEmpty = document.getElementById('lyricsEmpty');
     }
 
@@ -1364,6 +1369,20 @@ class PearConnectClient {
         }
     }
 
+    handlePlaybackTargetChange(target) {
+        console.log('[Pear Connect Client] Playback target changed to:', target);
+        if (target === 'phone') {
+            if (this.targetBadge) {
+                this.targetBadge.style.display = 'inline-block';
+                this.targetBadge.textContent = 'PHONE MODE';
+            }
+        } else {
+            if (this.targetBadge) {
+                this.targetBadge.style.display = 'none';
+            }
+        }
+    }
+
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
@@ -1482,6 +1501,28 @@ class PearConnectClient {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return \`\${mins}:\${secs.toString().padStart(2, '0')}\`;
+    }
+
+    startInterpolation() {
+        setInterval(() => this.tick(), 250);
+    }
+
+    tick() {
+        if (!this.isPlaying || !this.currentState || !this.currentState.timestamp) return;
+
+        const now = Date.now();
+        const elapsed = (now - this.currentState.timestamp) / 1000;
+        const interpolatedTime = Math.min(this.currentState.currentTime + elapsed, this.currentState.duration);
+
+        // Update UI locally
+        const progress = this.currentState.duration > 0 ? (interpolatedTime / this.currentState.duration) * 100 : 0;
+        this.progressFill.style.width = progress + '%';
+        this.currentTime.textContent = this.formatTime(interpolatedTime);
+
+        // Update lyrics if needed
+        if (this.currentLyrics && this.currentLyrics.length > 0) {
+            this.displayCurrentLyric(interpolatedTime);
+        }
     }
 
     updateQueue(queue) {
@@ -1915,10 +1956,10 @@ class PearConnectClient {
         this.displayCurrentLyric();
     }
 
-    displayCurrentLyric() {
+    displayCurrentLyric(timeOverride) {
         if (!this.currentLyrics || !this.currentState) return;
         
-        const currentTime = this.currentState.currentTime || 0;
+        const currentTime = timeOverride !== undefined ? timeOverride : (this.currentState.currentTime || 0);
         let currentIndex = -1;
         
         // Find the current lyric line based on time
@@ -1975,7 +2016,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         port: this.config.port,
         ip: this.getLocalIP(),
-        tunnelUrl: this.tunnelUrl
       };
     });
 
@@ -2016,6 +2056,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Broadcast state update
     ipcMain.on('pear-connect:state-update', (_, state: PlaybackState) => {
+      // console.log('[PearConnect Backend] Received state-update from renderer');
       this.wsServer?.broadcastState(state);
     });
 
@@ -2114,8 +2155,7 @@ document.addEventListener('DOMContentLoaded', () => {
   onConfigChange(newConfig: PearConnectConfig) {
     const needsRestart =
       newConfig.port !== this.config.port ||
-      newConfig.serviceName !== this.config.serviceName ||
-      newConfig.discoveryEnabled !== this.config.discoveryEnabled;
+      newConfig.serviceName !== this.config.serviceName;
 
     this.config = newConfig;
 
