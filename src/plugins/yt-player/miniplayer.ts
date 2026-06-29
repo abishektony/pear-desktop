@@ -1893,6 +1893,7 @@ export class Miniplayer {
         if (thumbnailSrc && this.fullscreenPlayer) {
             // Set CSS variable for the background
             this.fullscreenPlayer.style.setProperty('--bg-image', `url("${thumbnailSrc}")`);
+            document.documentElement.style.setProperty('--bg-image', `url("${thumbnailSrc}")`);
 
             // Extract and apply color
             this.extractAndApplyColor(thumbnailSrc);
@@ -1933,6 +1934,7 @@ export class Miniplayer {
                 if (thumbnailCandidate) {
                     this.verifyAndSetFullscreenImage(thumbnailCandidate);
                     this.fullscreenPlayer?.style.setProperty('--bg-image', `url("${thumbnailCandidate}")`);
+                    document.documentElement.style.setProperty('--bg-image', `url("${thumbnailCandidate}")`);
                     this.extractAndApplyColor(thumbnailCandidate);
                 } else {
                     this.fullscreenThumbnailElement.style.backgroundImage = '';
@@ -2222,6 +2224,7 @@ export class Miniplayer {
                 this.currentThumbnailUrl = null;
                 if (this.fullscreenPlayer) {
                     this.fullscreenPlayer.style.setProperty('--bg-image', 'none');
+                    document.documentElement.style.setProperty('--bg-image', 'none');
                 }
                 return;
             }
@@ -2243,6 +2246,7 @@ export class Miniplayer {
                 this.currentThumbnailUrl = url;
                 if (this.fullscreenPlayer) {
                     this.fullscreenPlayer.style.setProperty('--bg-image', `url("${url}")`);
+                    document.documentElement.style.setProperty('--bg-image', `url("${url}")`);
                 }
                 return;
             }
@@ -2277,6 +2281,7 @@ export class Miniplayer {
                 // Update background blur
                 if (this.fullscreenPlayer) {
                     this.fullscreenPlayer.style.setProperty('--bg-image', `url("${url}")`);
+                    document.documentElement.style.setProperty('--bg-image', `url("${url}")`);
                 }
             }, 1000);
         };

@@ -577,7 +577,7 @@ export class PearWebSocketServer {
     });
   }
 
-  private handleIncomingSetPlaybackTarget(clientData: { ws: WebSocket | 'supabase'; client: RemoteClient }, target: PlaybackTarget) {
+  private handleIncomingSetPlaybackTarget(_clientData: { ws: WebSocket | 'supabase'; client: RemoteClient }, target: PlaybackTarget) {
     if (this.onSetPlaybackTarget) this.onSetPlaybackTarget(target);
     this.broadcastPlaybackTarget(target);
   }
@@ -653,61 +653,25 @@ export class PearWebSocketServer {
   }
 
 
-  broadcastQueue(queue: QueueItem[]) {
-    // Store the queue for new clients
-    this.lastQueue = queue;
-
-    this.clients.forEach(({ ws, client }) => {
-      if (client.authenticated && client.permissions.queue) {
-        this.sendMessage(ws, {
-          type: 'QUEUE_UPDATE' as MessageType,
-          payload: queue,
-          timestamp: Date.now(),
-        });
-      }
-    });
-  }
-
-  broadcastState(state: PlaybackState) {
-    // Cache it (already below, but update this override)
-    this.lastState = state;
-
-    if (this.config.autoSync === false) {
-      return;
-    }
-
-    // console.log(`[PearConnect Backend] Broadcasting state to ${this.clients.size} clients`);
-    this.clients.forEach(({ ws, client }) => {
-      if (client.authenticated) {
-        this.sendMessage(ws, {
-          type: 'STATE_UPDATE' as MessageType,
-          payload: state,
-          timestamp: Date.now(),
-        });
-      }
-    });
-  }
-
-  broadcastPlaybackTarget(target: PlaybackTarget) {
-    this.clients.forEach(({ ws, client }) => {
-      if (client.authenticated) {
-        this.sendMessage(ws, {
-          type: 'SET_PLAYBACK_TARGET' as MessageType,
-          payload: target,
-          timestamp: Date.now(),
-        });
-      }
-    });
-  }
-
   private sendMessage(ws: WebSocket | 'supabase', message: WebSocketMessage) {
     if (ws === 'supabase') {
       if (this.supabaseChannel) {
-        this.supabaseChannel.send({
+        const channel = this.supabaseChannel as any;
+        const payload = {
           type: 'broadcast',
           event: 'desktop-state',
           payload: message,
-        });
+        };
+
+        if (channel.state === 'joined') {
+          channel.send(payload);
+        } else if (typeof channel.httpSend === 'function') {
+          // Explicitly use httpSend for REST delivery to avoid deprecation warning
+          channel.httpSend(payload);
+        } else {
+          // Fallback if httpSend is not available
+          channel.send(payload);
+        }
       }
     } else if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
@@ -786,6 +750,11 @@ export class PearWebSocketServer {
 
   broadcastState(state: PlaybackState) {
     this.lastState = state;
+
+    if (this.config.autoSync === false) {
+      return;
+    }
+
     this.clients.forEach(({ ws, client }) => {
       if (client.authenticated) {
         this.sendMessage(ws, {

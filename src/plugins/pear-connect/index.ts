@@ -303,30 +303,32 @@ export default createPlugin({
       button.id = 'pear-connect-btn';
       button.className = 'pear-connect-icon';
       button.innerHTML = `
-        <svg viewBox="0 0 24 24" width="24" height="24">
+        <svg viewBox="0 0 24 24" width="20" height="20" style="margin-right: 6px;">
           <path fill="currentColor" d="M12,2C6.48,2,2,6.48,2,12c0,5.52,4.48,10,10,10s10-4.48,10-10C22,6.48,17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8 s3.59-8,8-8s8,3.59,8,8S16.41,20,12,20z M12,6c-3.31,0-6,2.69-6,6s2.69,6,6,6s6-2.69,6-6S15.31,6,12,6z M12,14c-1.1,0-2-0.9-2-2 s0.9-2,2-2s2,0.9,2,2S13.1,14,12,14z"/>
         </svg>
+        <span style="font-weight: 500; font-family: 'Roboto', sans-serif; font-size: 14px;">Pear Connect</span>
       `;
       button.title = 'Pear Connect';
       button.style.cssText = `
-        background: none;
-        border: none;
-        padding: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--ytmusic-text-primary, #fff);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 6px 16px 6px 12px;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-right: 8px;
-        border-radius: 50%;
-        transition: background 0.2s;
+        margin-right: 16px;
+        border-radius: 18px;
+        transition: all 0.2s ease;
       `;
 
       button.addEventListener('mouseenter', () => {
-        button.style.background = 'rgba(255, 255, 255, 0.1)';
+        button.style.background = 'rgba(255, 255, 255, 0.2)';
       });
 
       button.addEventListener('mouseleave', () => {
-        button.style.background = 'none';
+        button.style.background = 'rgba(255, 255, 255, 0.1)';
       });
 
       button.addEventListener('click', () => {

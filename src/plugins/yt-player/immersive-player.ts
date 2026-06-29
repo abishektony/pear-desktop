@@ -46,6 +46,7 @@ export class ImmersivePlayer {
     private timeUpdateInterval: number | null = null;
 
     private boundResizeHandler: (() => void) | null = null;
+    private boundActivityHandler: ((e?: Event) => void) | null = null;
 
     constructor(fullscreenPlayer: HTMLElement) {
         this.fullscreenPlayer = fullscreenPlayer;
@@ -278,6 +279,13 @@ export class ImmersivePlayer {
         if (this.boundResizeHandler) {
             window.removeEventListener('resize', this.boundResizeHandler);
             this.boundResizeHandler = null;
+        }
+
+        // Remove activity handler
+        if (this.boundActivityHandler) {
+            this.fullscreenPlayer.removeEventListener('mousemove', this.boundActivityHandler);
+            this.fullscreenPlayer.removeEventListener('touchstart', this.boundActivityHandler);
+            this.boundActivityHandler = null;
         }
 
         localStorage.setItem('pear-immersive-mode', 'false');
@@ -515,16 +523,44 @@ export class ImmersivePlayer {
         translationToggle.onclick = () => this.toggleTranslationMode();
         rightGroup.appendChild(translationToggle);
 
-        // Hover listener to reveal controls in Zen Mode
-        this.immersiveContainer.addEventListener('mousemove', () => {
+        // Activity listener to reveal controls (both zen mode and general ui-active)
+        this.boundActivityHandler = (e?: Event) => {
+            this.immersiveContainer?.classList.add('ui-active');
+            
+            // Sidebar logic: only activate sidebar if touch/mouse is on the right side
+            let isRightSide = false;
+            if (e) {
+                if (e instanceof MouseEvent) {
+                    isRightSide = e.clientX > window.innerWidth * 0.6;
+                } else if (window.TouchEvent && e instanceof TouchEvent && e.touches.length > 0) {
+                    isRightSide = e.touches[0].clientX > window.innerWidth * 0.6;
+                }
+            } else {
+                // Default to right side if triggered programmatically
+                isRightSide = true;
+            }
+
+            if (isRightSide) {
+                this.immersiveContainer?.classList.add('sidebar-active');
+            } else {
+                this.immersiveContainer?.classList.remove('sidebar-active');
+            }
+
             if (this.zenMode) {
                 this.immersiveContainer?.classList.add('zen-temp-show');
-                if (this.zenModeTimeout) clearTimeout(this.zenModeTimeout);
-                this.zenModeTimeout = window.setTimeout(() => {
-                    this.immersiveContainer?.classList.remove('zen-temp-show');
-                }, 3000);
             }
-        });
+            
+            if (this.zenModeTimeout) clearTimeout(this.zenModeTimeout);
+            this.zenModeTimeout = window.setTimeout(() => {
+                this.immersiveContainer?.classList.remove('ui-active');
+                this.immersiveContainer?.classList.remove('sidebar-active');
+                this.immersiveContainer?.classList.remove('zen-temp-show');
+            }, 3000);
+        };
+
+        // Attach to fullscreenPlayer so it triggers across the whole window
+        this.fullscreenPlayer.addEventListener('mousemove', this.boundActivityHandler);
+        this.fullscreenPlayer.addEventListener('touchstart', this.boundActivityHandler, { passive: true });
 
         // Removed Queue and Lyrics buttons moving
 
