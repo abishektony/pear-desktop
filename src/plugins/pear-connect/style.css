@@ -1073,43 +1073,15 @@
 #pear-connect-sidebar-item {
   cursor: pointer;
   transition: background 0.2s;
-  min-width: 200px !important;
-  width: auto !important;
 }
 
 #pear-connect-sidebar-item:hover {
   background: var(--yt-spec-10-percent-layer);
 }
 
-#pear-connect-sidebar-item tp-yt-paper-item {
-  width: 100% !important;
-  min-width: 200px !important;
-}
-
-#pear-connect-sidebar-item .title-column {
-  flex: 1 !important;
-  min-width: 120px !important;
-  overflow: visible !important;
-}
-
-#pear-connect-sidebar-item .title {
-  color: #ffffff !important;
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  letter-spacing: 0.5px !important;
-  white-space: nowrap !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-}
-
 #pear-connect-sidebar-item .guide-icon {
   color: #ffffff !important;
-  margin-right: 24px !important;
   filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
-  flex-shrink: 0 !important;
 }
 
 #pear-connect-sidebar-item:hover .guide-icon {

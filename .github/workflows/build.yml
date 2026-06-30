@@ -123,6 +123,28 @@ jobs:
           draft: true
           searchLimit: 1
 
+      - name: Extract Release Notes
+        if: ${{ env.VERSION_HASH == '' }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const lines = fs.readFileSync('changelog.md', 'utf8').split('\n');
+            let capturing = false;
+            let notes = [];
+            for (const line of lines) {
+              if (line.startsWith('#### [' + process.env.VERSION_TAG + ']')) {
+                capturing = true;
+                continue;
+              }
+              if (capturing && line.startsWith('#### [v')) break;
+              if (capturing) notes.push(line);
+            }
+            fs.writeFileSync('release_notes.txt', notes.join('\n').trim() + '\n\n');
+          "
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          cat release_notes.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Publish Release (if it does not exist)
         if: ${{ env.VERSION_HASH == '' }}
         uses: irongut/EditRelease@v1.2.0
@@ -135,6 +157,8 @@ jobs:
           name: ${{ env.VERSION_TAG }}
           replacebody: true
           body: |
+            ${{ env.RELEASE_NOTES }}
+
             See [changelog](https://github.com/pear-devs/pear-desktop/blob/master/changelog.md#${{ env.CHANGELOG_ANCHOR }}) for the list of updates and the full diff.
 
             Thanks to all contributors! 🏅

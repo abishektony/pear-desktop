@@ -208,25 +208,38 @@ export default createPlugin<
         '--yt-spec-black-1-alpha-98': 'rgba(40,40,40,0.98)',
         '--yt-spec-black-1-alpha-95': 'rgba(40,40,40,0.95)',
       };
-      Object.entries(variableMap).map(([variable, color]) => {
-        document.documentElement.style.setProperty(
-          variable,
-          this.getMixedColor(color, COLOR_KEY, alpha),
-          'important',
-        );
-      });
 
-      document.body.style.setProperty(
-        'background',
-        this.getMixedColor('rgba(3, 3, 3)', DARK_COLOR_KEY, alpha),
-        'important',
-      );
-      document.documentElement.style.setProperty(
-        '--ytmusic-background',
-        // #030303
-        this.getMixedColor('rgba(3, 3, 3)', DARK_COLOR_KEY, alpha),
-        'important',
-      );
+      // Use a <style> element instead of inline !important so pear-responsive.css
+      // can override visual properties (backdrop-filter, glass effects) while
+      // the color variables still flow through properly.
+      let styleEl = document.getElementById('pear-album-color-theme-vars') as HTMLStyleElement | null;
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'pear-album-color-theme-vars';
+        document.head.appendChild(styleEl);
+      }
+
+      const bgColor = this.getMixedColor('rgba(3, 3, 3)', DARK_COLOR_KEY, alpha);
+      const cssRules = Object.entries(variableMap)
+        .map(([variable, color]) => `  ${variable}: ${this.getMixedColor(color, COLOR_KEY, alpha)} !important;`)
+        .join('\n');
+
+      // Expose album accent color for pear-responsive glassmorphic integration
+      const accentR = this.color ? `${~~this.color.red()}` : '0';
+      const accentG = this.color ? `${~~this.color.green()}` : '0';
+      const accentB = this.color ? `${~~this.color.blue()}` : '0';
+
+      styleEl.textContent = `
+:root {
+${cssRules}
+  --ytmusic-background: ${bgColor} !important;
+  --pear-album-accent: ${accentR}, ${accentG}, ${accentB};
+  --pear-album-accent-color: rgb(${accentR}, ${accentG}, ${accentB});
+}
+body {
+  background: ${bgColor} !important;
+}
+`;
     },
   },
 });

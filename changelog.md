@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v3.12.1](https://github.com/pear-devs/pear-desktop/compare/v3.12.0...v3.12.1)
+
+- fix(ui): Correctly hide immersive fallback album art when music videos are playing
+- fix(ui): Completely hide sidebar scrollbars for a cleaner, flush aesthetic
+- fix(ui): Add buttery-smooth, spring-like opening and closing animations to the sidebar
+- refactor(pear-connect): Remove redundant sidebar button in favor of the top navigation button
+
+#### [v3.12.0](https://github.com/pear-devs/pear-desktop/compare/v3.11.9...v3.12.0)
+
+- feat(ui): Massive redesign introducing a sleek, global glassmorphic aesthetic across the entire app
+- feat(ui): Premium "Immersive Mode" revamp with full-screen blurred dynamic backgrounds and a sharp, floating album art centerpiece
+- feat(ui): Bring the glassmorphic design language into the Pear Desktop Settings dialogs and dropdown menus
+- feat(pear-connect): Fix alignment and integrate proper flexbox styling for the Pear Connect button
+- fix(pear-connect): Resolve Supabase Realtime `send()` deprecation warnings by explicitly using `httpSend()`
+- chore(deps): Update lockfile and sync dependencies for the new release
+
 #### [v3.11.0](https://github.com/pear-devs/pear-desktop/compare/v3.10.0...v3.11.0)
 
 - Fixed missing videochange dataupdated event when using shuffle [`#3659`](https://github.com/pear-devs/pear-desktop/pull/3659)

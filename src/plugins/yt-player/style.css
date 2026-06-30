@@ -60,12 +60,14 @@
 
 @keyframes slideUp {
     from {
-        transform: translateY(100%);
+        transform: translateY(100%) scale(0.95);
         opacity: 0;
+        filter: blur(8px);
     }
     to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
+        filter: blur(0);
     }
 }
 
@@ -281,11 +283,16 @@
 @keyframes playerFadeIn {
     from {
         opacity: 0;
-        transform: scale(0.97);
+        transform: scale(0.96);
+        filter: blur(6px);
+    }
+    60% {
+        filter: blur(2px);
     }
     to {
         opacity: 1;
         transform: scale(1);
+        filter: blur(0);
     }
 }
 
@@ -461,7 +468,7 @@
     transition-duration: 0.1s;
 }
 
-/* Play button — prominent */
+/* Play button — prominent with breathing glow */
 .pear-fullscreen-btn.play {
     width: clamp(52px, 7vmin, 68px);
     height: clamp(52px, 7vmin, 68px);
@@ -470,6 +477,17 @@
     color: #000;
     border: none;
     box-shadow: 0 4px 24px rgba(255, 255, 255, 0.15);
+    animation: playBreathingGlow 3s ease-in-out infinite;
+}
+
+@keyframes playBreathingGlow {
+    0%, 100% {
+        box-shadow: 0 4px 24px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+        box-shadow: 0 4px 32px rgba(255, 255, 255, 0.3),
+                    0 0 48px rgba(255, 255, 255, 0.1);
+    }
 }
 
 .pear-fullscreen-btn.play:hover {
@@ -477,10 +495,12 @@
     color: #000;
     transform: scale(1.12);
     box-shadow: 0 6px 32px rgba(255, 255, 255, 0.25);
+    animation: none;
 }
 
 .pear-fullscreen-btn.play:active {
     transform: scale(0.95);
+    animation: none;
 }
 
 /* Active states for like and repeat buttons */

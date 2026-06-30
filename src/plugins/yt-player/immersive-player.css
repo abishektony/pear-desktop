@@ -58,7 +58,7 @@ video.pear-immersive-video {
 /* Instead of blurring the fallback, we make it a sharp, beautiful album cover in the center */
 .pear-fullscreen-player.immersive-mode .pear-immersive-fallback {
     position: absolute;
-    top: 50%;
+    top: 35%; /* Moved slightly higher than middle */
     left: 50%;
     transform: translate(-50%, -50%);
     width: 55vh; /* Keep it square and prominent */

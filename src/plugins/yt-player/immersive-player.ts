@@ -138,13 +138,11 @@ export class ImmersivePlayer {
 
         if (src) {
             this.fallbackElement.style.backgroundImage = `url('${src}')`;
-            this.fallbackElement.style.opacity = '1';
         } else {
             // Fallback to computed CSS var relative to document if direct extraction fails
             const bg = getComputedStyle(this.fullscreenPlayer).getPropertyValue('--bg-image');
             if (bg && bg !== 'none') {
                 this.fallbackElement.style.backgroundImage = bg;
-                this.fallbackElement.style.opacity = '1';
             } else {
                 // No fallback image found
             }

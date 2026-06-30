@@ -3,6 +3,7 @@
    ============================================================
    Injected alongside yt-player styles to make YouTube Music
    pages feel cohesive with the glassmorphic player design.
+   Cinematic animations, ambient lighting, immersive transitions.
    ============================================================ */
 
 /* ===== Design Tokens ===== */
@@ -21,6 +22,8 @@
     --pear-radius-md: 12px;
     --pear-radius-lg: 16px;
     --pear-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --pear-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    --pear-ease-out: cubic-bezier(0, 0, 0.2, 1);
 
     /* Override YouTube Music Native Tokens */
     --ytmusic-background: var(--pear-bg-deep) !important;
@@ -86,46 +89,120 @@ ytmusic-app ::-webkit-scrollbar-track {
 ytmusic-app ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 99px;
+    transition: background 0.2s var(--pear-ease);
 }
 
 ytmusic-app ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
 }
 
-/* ===== Nav Bar Enhancements ===== */
+
+/* ============================================================
+   NAV BAR — Premium Glassmorphism
+   ============================================================ */
+
 ytmusic-nav-bar {
-    backdrop-filter: blur(24px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
-    border-bottom: 1px solid var(--pear-glass-border) !important;
-    transition: background 0.3s var(--pear-ease) !important;
+    backdrop-filter: blur(32px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    transition: all 0.4s var(--pear-ease) !important;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) !important;
 }
 
-/* Tab items — smoother hover and active states */
+/* Subtle inner glow on nav bar */
+#nav-bar-background {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+#nav-bar-background::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 1px !important;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.06) 20%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.06) 80%,
+        transparent 100%
+    ) !important;
+    pointer-events: none !important;
+}
+
+/* Tab items — premium hover and active states */
 ytmusic-pivot-bar-item-renderer {
-    transition: all 0.2s var(--pear-ease) !important;
+    transition: all 0.25s var(--pear-ease) !important;
     border-radius: var(--pear-radius-sm) !important;
+    position: relative !important;
 }
 
 ytmusic-pivot-bar-item-renderer:hover {
     background: var(--pear-hover-bg) !important;
+    transform: translateY(-1px) !important;
+}
+
+ytmusic-pivot-bar-item-renderer:active {
+    transform: scale(0.97) !important;
+    transition-duration: 0.1s !important;
 }
 
 ytmusic-pivot-bar-item-renderer[selected] {
     background: var(--pear-active-bg) !important;
 }
 
-/* ===== Search Box ===== */
+/* Active tab indicator glow */
+ytmusic-pivot-bar-item-renderer[selected]::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 20% !important;
+    width: 60% !important;
+    height: 2px !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
+    animation: tabGlowPulse 2s ease-in-out infinite !important;
+}
+
+@keyframes tabGlowPulse {
+    0%, 100% { opacity: 0.7; box-shadow: 0 0 6px rgba(255, 255, 255, 0.2); }
+    50% { opacity: 1; box-shadow: 0 0 12px rgba(255, 255, 255, 0.4); }
+}
+
+
+/* ============================================================
+   SEARCH BOX — Floating Glassmorphic
+   ============================================================ */
+
 ytmusic-search-box {
-    transition: all 0.25s var(--pear-ease) !important;
+    transition: all 0.3s var(--pear-ease) !important;
 }
 
 ytmusic-search-box[is-search-page] tp-yt-paper-icon-button,
 ytmusic-search-box[focused] {
     background: rgba(255, 255, 255, 0.04) !important;
     border-radius: 24px !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 4px 16px rgba(0, 0, 0, 0.2) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
 }
 
-/* ===== Page Content — Home Shelves ===== */
+/* Focus glow ring animation */
+ytmusic-search-box[focused] {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1),
+                0 0 24px rgba(255, 255, 255, 0.05),
+                0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+
+/* ============================================================
+   HOME PAGE — Staggered Shelf Reveals
+   ============================================================ */
 
 /* Shelf titles */
 ytmusic-carousel-shelf-renderer .header {
@@ -138,29 +215,95 @@ ytmusic-carousel-shelf-renderer .header .title {
     letter-spacing: -0.01em !important;
 }
 
-/* Card items */
+/* Staggered shelf entrance — each shelf fades+slides in with delay */
+ytmusic-carousel-shelf-renderer {
+    animation: shelfReveal 0.6s var(--pear-ease-spring) both !important;
+}
+
+ytmusic-carousel-shelf-renderer:nth-child(1) { animation-delay: 0.05s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(2) { animation-delay: 0.12s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(3) { animation-delay: 0.19s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(4) { animation-delay: 0.26s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(5) { animation-delay: 0.33s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(6) { animation-delay: 0.40s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(7) { animation-delay: 0.47s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(8) { animation-delay: 0.54s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(9) { animation-delay: 0.61s !important; }
+ytmusic-carousel-shelf-renderer:nth-child(10) { animation-delay: 0.68s !important; }
+
+@keyframes shelfReveal {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+/* Section list items also get staggered */
+ytmusic-section-list-renderer > #contents > * {
+    animation: shelfReveal 0.5s var(--pear-ease-spring) both !important;
+}
+
+ytmusic-section-list-renderer > #contents > *:nth-child(1) { animation-delay: 0.05s !important; }
+ytmusic-section-list-renderer > #contents > *:nth-child(2) { animation-delay: 0.1s !important; }
+ytmusic-section-list-renderer > #contents > *:nth-child(3) { animation-delay: 0.15s !important; }
+ytmusic-section-list-renderer > #contents > *:nth-child(4) { animation-delay: 0.2s !important; }
+ytmusic-section-list-renderer > #contents > *:nth-child(5) { animation-delay: 0.25s !important; }
+
+
+/* ============================================================
+   CARD ITEMS — Premium Hover with Ambient Glow
+   ============================================================ */
+
+/* Card items — base transitions */
 ytmusic-responsive-list-item-renderer,
 ytmusic-two-row-item-renderer {
-    transition: all 0.2s var(--pear-ease) !important;
+    transition: all 0.3s var(--pear-ease) !important;
     border-radius: var(--pear-radius-md) !important;
+    position: relative !important;
 }
 
-ytmusic-responsive-list-item-renderer:hover,
+/* Hover lift + ambient glow */
 ytmusic-two-row-item-renderer:hover {
     background: var(--pear-hover-bg) !important;
-    transform: translateY(-1px);
+    transform: translateY(-4px) scale(1.02) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    z-index: 2 !important;
 }
 
-ytmusic-responsive-list-item-renderer:active,
 ytmusic-two-row-item-renderer:active {
-    transform: scale(0.99) !important;
+    transform: translateY(-1px) scale(0.98) !important;
+    transition-duration: 0.12s !important;
+}
+
+/* List items hover */
+ytmusic-responsive-list-item-renderer:hover {
+    background: var(--pear-hover-bg) !important;
+    transform: translateX(4px) !important;
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+ytmusic-responsive-list-item-renderer:active {
+    transform: scale(0.995) !important;
     transition-duration: 0.1s !important;
 }
 
-/* Album/Playlist card thumbnail rounded corners */
+/* Album/Playlist card thumbnail — enhanced corners + hover effect */
 ytmusic-two-row-item-renderer yt-img-shadow {
     border-radius: var(--pear-radius-md) !important;
     overflow: hidden !important;
+    transition: all 0.35s var(--pear-ease) !important;
+}
+
+ytmusic-two-row-item-renderer:hover yt-img-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    transform: scale(1.02) !important;
 }
 
 ytmusic-two-row-item-renderer[is-album] yt-img-shadow,
@@ -168,7 +311,25 @@ ytmusic-two-row-item-renderer[is-playlist] yt-img-shadow {
     border-radius: var(--pear-radius-md) !important;
 }
 
-/* ===== Responsive list items (search results, queue) ===== */
+/* Card title text — subtle animation on hover */
+ytmusic-two-row-item-renderer .title {
+    transition: color 0.2s var(--pear-ease) !important;
+}
+
+ytmusic-two-row-item-renderer:hover .title {
+    color: #fff !important;
+}
+
+/* Overlay play button on cards */
+ytmusic-two-row-item-renderer .hover-buttons {
+    transition: all 0.25s var(--pear-ease-spring) !important;
+}
+
+
+/* ============================================================
+   RESPONSIVE LIST ITEMS (Search, Queue)
+   ============================================================ */
+
 ytmusic-responsive-list-item-renderer {
     padding: 8px clamp(8px, 2vw, 16px) !important;
 }
@@ -183,25 +344,62 @@ ytmusic-responsive-list-item-renderer .secondary-flex-columns {
     color: var(--pear-text-secondary) !important;
 }
 
-/* ===== Song List Items ===== */
+
+/* ============================================================
+   SONG LIST ITEMS
+   ============================================================ */
+
 ytmusic-playlist-shelf-renderer ytmusic-responsive-list-item-renderer {
     margin-bottom: 2px !important;
     border-radius: var(--pear-radius-sm) !important;
 }
 
-/* ===== Artist Page ===== */
+
+/* ============================================================
+   ARTIST PAGE — Cinematic Header
+   ============================================================ */
+
 ytmusic-immersive-header-renderer {
     position: relative !important;
 }
 
-/* Artist header text shadow for readability */
 ytmusic-immersive-header-renderer .content {
-    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6) !important;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 0.7) !important;
+    animation: artistHeaderReveal 0.8s var(--pear-ease-spring) both !important;
 }
 
-/* ===== Detail Page (Album/Playlist) ===== */
+@keyframes artistHeaderReveal {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+        filter: blur(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+
+/* ============================================================
+   DETAIL PAGE (Album/Playlist) — Premium Layout
+   ============================================================ */
+
 ytmusic-detail-header-renderer {
     padding: clamp(16px, 4vw, 40px) !important;
+    animation: detailHeaderReveal 0.7s var(--pear-ease-spring) both !important;
+}
+
+@keyframes detailHeaderReveal {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 ytmusic-detail-header-renderer .title {
@@ -215,28 +413,126 @@ ytmusic-detail-header-renderer .subtitle {
     font-size: clamp(13px, 2vw, 16px) !important;
 }
 
-/* ===== Sidebar / Guide ===== */
+/* Album art on detail page — cinematic entrance */
+ytmusic-detail-header-renderer .thumbnail {
+    animation: albumArtEntrance 0.8s var(--pear-ease-spring) both !important;
+    transition: transform 0.4s var(--pear-ease), box-shadow 0.4s var(--pear-ease) !important;
+}
+
+ytmusic-detail-header-renderer .thumbnail:hover {
+    transform: scale(1.03) !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
+}
+
+@keyframes albumArtEntrance {
+    from {
+        opacity: 0;
+        transform: scale(0.9) rotate(-1deg);
+        filter: blur(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: blur(0);
+    }
+}
+
+
+/* ============================================================
+   SIDEBAR / GUIDE — Glow Indicator & Layout
+   ============================================================ */
+
+/* Smooth opening and closing animations for the entire sidebar layout */
+ytmusic-app-layout > [slot="guide"],
+ytmusic-app-layout > [id="main"],
+ytmusic-guide-renderer,
+#guide-wrapper,
+#mini-guide-background {
+    transition: width 0.45s var(--pear-ease-spring), 
+                min-width 0.45s var(--pear-ease-spring), 
+                max-width 0.45s var(--pear-ease-spring),
+                margin-left 0.45s var(--pear-ease-spring),
+                padding-left 0.45s var(--pear-ease-spring),
+                transform 0.45s var(--pear-ease-spring),
+                opacity 0.3s var(--pear-ease) !important;
+}
+
 ytmusic-guide-section-renderer {
     padding: 4px 8px !important;
 }
 
+/* Hide scrollbar in sidebar for a cleaner look */
+ytmusic-guide-section-renderer #items::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+ytmusic-guide-section-renderer #items {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}
+
 ytmusic-guide-entry-renderer {
     border-radius: var(--pear-radius-sm) !important;
-    transition: background 0.2s var(--pear-ease) !important;
+    transition: all 0.25s var(--pear-ease) !important;
+    position: relative !important;
 }
 
 ytmusic-guide-entry-renderer:hover {
     background: var(--pear-hover-bg) !important;
+    transform: translateX(3px) !important;
 }
 
-/* ===== Dialog / Menu Overlay polish ===== */
+/* Active sidebar item — glow accent line */
+ytmusic-guide-entry-renderer[selected] {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+ytmusic-guide-entry-renderer[selected]::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 15% !important;
+    bottom: 15% !important;
+    width: 3px !important;
+    background: rgba(255, 255, 255, 0.6) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3),
+                0 0 16px rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Mini guide (collapsed sidebar) */
+#mini-guide-background {
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+}
+
+
+/* ============================================================
+   DIALOG / MENU OVERLAY — Glassmorphic Polish
+   ============================================================ */
+
 tp-yt-paper-dialog {
     background: var(--pear-glass-bg) !important;
     backdrop-filter: blur(var(--pear-glass-blur)) saturate(150%) !important;
     -webkit-backdrop-filter: blur(var(--pear-glass-blur)) saturate(150%) !important;
     border: 1px solid var(--pear-glass-border) !important;
     border-radius: var(--pear-radius-lg) !important;
-    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    animation: dialogEnter 0.3s var(--pear-ease-spring) both !important;
+}
+
+@keyframes dialogEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+    }
 }
 
 tp-yt-paper-listbox {
@@ -245,36 +541,162 @@ tp-yt-paper-listbox {
 
 tp-yt-paper-item {
     border-radius: var(--pear-radius-sm) !important;
-    transition: background 0.15s var(--pear-ease) !important;
+    transition: all 0.2s var(--pear-ease) !important;
 }
 
 tp-yt-paper-item:hover {
     background: var(--pear-hover-bg) !important;
+    transform: translateX(2px) !important;
 }
 
-/* ===== Chips / Filter Buttons ===== */
+/* Context menus / popups */
+ytmusic-menu-popup-renderer {
+    background: var(--pear-glass-bg) !important;
+    backdrop-filter: blur(32px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(150%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: var(--pear-radius-md) !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5) !important;
+    animation: menuPopIn 0.2s var(--pear-ease-spring) both !important;
+}
+
+@keyframes menuPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+
+/* ============================================================
+   CHIPS / FILTER BUTTONS
+   ============================================================ */
+
 ytmusic-chip-cloud-chip-renderer {
     border-radius: 20px !important;
-    transition: all 0.2s var(--pear-ease) !important;
+    transition: all 0.25s var(--pear-ease) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
 }
 
 ytmusic-chip-cloud-chip-renderer:hover {
     background: var(--pear-hover-bg) !important;
-    transform: translateY(-1px) !important;
+    transform: translateY(-2px) scale(1.03) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+ytmusic-chip-cloud-chip-renderer:active {
+    transform: scale(0.97) !important;
+    transition-duration: 0.1s !important;
 }
 
 ytmusic-chip-cloud-chip-renderer[is-selected] {
-    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 2px 12px rgba(255, 255, 255, 0.1),
+                0 0 0 1px rgba(255, 255, 255, 0.1) !important;
 }
 
-/* ===== Toast / Snackbar ===== */
+
+/* ============================================================
+   TOAST / SNACKBAR — Floating Glassmorphic
+   ============================================================ */
+
 ytmusic-popup-container tp-yt-paper-toast {
     background: var(--pear-glass-bg) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
+    backdrop-filter: blur(32px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(150%) !important;
     border: 1px solid var(--pear-glass-border) !important;
     border-radius: var(--pear-radius-md) !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    animation: toastSlideUp 0.4s var(--pear-ease-spring) both !important;
+}
+
+@keyframes toastSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+
+/* ============================================================
+   LOADING / SKELETON STATES — Shimmer Pulse
+   ============================================================ */
+
+/* Skeleton shimmer for loading states */
+ytmusic-carousel-shelf-renderer[is-loading],
+ytmusic-responsive-list-item-renderer[is-ghost] {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+ytmusic-carousel-shelf-renderer[is-loading]::after,
+ytmusic-responsive-list-item-renderer[is-ghost]::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.03) 40%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.03) 60%,
+        transparent 100%
+    ) !important;
+    animation: skeletonShimmer 1.8s ease-in-out infinite !important;
+    pointer-events: none !important;
+    border-radius: inherit !important;
+}
+
+@keyframes skeletonShimmer {
+    0% { left: -100%; }
+    100% { left: 200%; }
+}
+
+
+/* ============================================================
+   PLAYER BAR — Enhanced Glass
+   ============================================================ */
+
+#player-bar-background {
+    backdrop-filter: blur(32px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+    transition: all 0.4s var(--pear-ease) !important;
+}
+
+/* Player bar song thumbnail hover */
+ytmusic-player-bar .middle-controls .content-info-wrapper {
+    transition: transform 0.2s var(--pear-ease) !important;
+}
+
+ytmusic-player-bar .middle-controls .content-info-wrapper:hover {
+    transform: translateX(2px) !important;
+}
+
+/* Player bar buttons */
+ytmusic-player-bar tp-yt-paper-icon-button {
+    transition: all 0.2s var(--pear-ease) !important;
+}
+
+ytmusic-player-bar tp-yt-paper-icon-button:hover {
+    transform: scale(1.1) !important;
+    color: #fff !important;
+}
+
+ytmusic-player-bar tp-yt-paper-icon-button:active {
+    transform: scale(0.92) !important;
+    transition-duration: 0.08s !important;
 }
 
 
@@ -284,13 +706,11 @@ ytmusic-popup-container tp-yt-paper-toast {
 
 /* ===== Small Phone (≤480px) ===== */
 @media (max-width: 480px) {
-    /* Tighter padding */
     ytmusic-browse-response,
     ytmusic-section-list-renderer {
         padding: 0 4px !important;
     }
 
-    /* Shelf items scroll horizontally with tighter gap */
     ytmusic-carousel-shelf-renderer #items {
         gap: 8px !important;
         padding: 0 8px !important;
@@ -304,14 +724,12 @@ ytmusic-popup-container tp-yt-paper-toast {
         border-radius: var(--pear-radius-sm) !important;
     }
 
-    /* Compact search results */
     ytmusic-responsive-list-item-renderer yt-img-shadow {
         width: 40px !important;
         height: 40px !important;
         border-radius: 6px !important;
     }
 
-    /* Nav bar compact */
     ytmusic-nav-bar {
         padding-left: 8px !important;
         padding-right: 8px !important;
@@ -321,12 +739,10 @@ ytmusic-popup-container tp-yt-paper-toast {
         font-size: 12px !important;
     }
 
-    /* Player bar adjustments */
     ytmusic-player-bar {
         padding: 0 8px !important;
     }
 
-    /* Detail header */
     ytmusic-detail-header-renderer {
         padding: 12px !important;
     }
@@ -457,21 +873,17 @@ ytmusic-popup-container tp-yt-paper-toast {
    MOBILE-FIRST LAYOUT FIXES
    ============================================================ */
 
-/* Ensure browse content doesn't overflow */
 @media (max-width: 640px) {
-    /* Hide the sidebar on small screens */
     ytmusic-guide-section-renderer,
     tp-yt-app-drawer {
         display: none !important;
     }
 
-    /* Full-width main content */
     ytmusic-browse-response {
         width: 100% !important;
         max-width: 100% !important;
     }
 
-    /* Stack detail header vertically on phone */
     ytmusic-detail-header-renderer .content {
         flex-direction: column !important;
         align-items: center !important;
@@ -483,7 +895,6 @@ ytmusic-popup-container tp-yt-paper-toast {
         margin: 0 auto !important;
     }
 
-    /* Search suggestions dropdown */
     ytmusic-search-suggestions-section {
         padding: 4px 8px !important;
     }
@@ -494,26 +905,180 @@ ytmusic-popup-container tp-yt-paper-toast {
     }
 }
 
-/* ===== Smooth page transitions ===== */
+
+/* ============================================================
+   SMOOTH PAGE TRANSITIONS — Cinematic
+   ============================================================ */
+
 ytmusic-browse-response,
 ytmusic-search-page,
 ytmusic-playlist-shelf-renderer {
-    animation: pearPageFadeIn 0.3s var(--pear-ease) both !important;
+    animation: pearPageFadeIn 0.5s var(--pear-ease-spring) both !important;
 }
 
 @keyframes pearPageFadeIn {
     from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(12px) scale(0.995);
+        filter: blur(3px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
+        filter: blur(0);
     }
 }
 
-/* ===== Selection highlight ===== */
+/* Tab content switching animation */
+ytmusic-tabbed-search-results-renderer > .content-container {
+    animation: tabContentReveal 0.4s var(--pear-ease-spring) both !important;
+}
+
+@keyframes tabContentReveal {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+
+/* ============================================================
+   SELECTION HIGHLIGHT
+   ============================================================ */
+
 ytmusic-app ::selection {
     background: rgba(255, 255, 255, 0.2) !important;
     color: inherit !important;
+}
+
+
+/* ============================================================
+   QUEUE PANEL — Glassmorphic Enhancement
+   ============================================================ */
+
+ytmusic-player-queue {
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+}
+
+/* Queue items entrance */
+ytmusic-player-queue-item {
+    transition: all 0.2s var(--pear-ease) !important;
+    border-radius: var(--pear-radius-sm) !important;
+}
+
+ytmusic-player-queue-item:hover {
+    background: var(--pear-hover-bg) !important;
+    transform: translateX(3px) !important;
+}
+
+ytmusic-player-queue-item[selected] {
+    background: rgba(255, 255, 255, 0.06) !important;
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+
+/* ============================================================
+   PROGRESS BAR — Smooth Glow
+   ============================================================ */
+
+tp-yt-paper-slider {
+    transition: all 0.2s var(--pear-ease) !important;
+}
+
+tp-yt-paper-slider:hover #sliderKnob {
+    transform: scale(1.3) !important;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+
+/* ============================================================
+   GLOBAL MICRO-ANIMATIONS — Premium Feel
+   ============================================================ */
+
+/* All clickable elements get a subtle press effect */
+ytmusic-app button,
+ytmusic-app tp-yt-paper-icon-button,
+ytmusic-app a[href] {
+    transition: transform 0.15s var(--pear-ease), opacity 0.15s var(--pear-ease) !important;
+}
+
+/* Smooth image loading */
+ytmusic-app yt-img-shadow img {
+    transition: opacity 0.4s var(--pear-ease) !important;
+}
+
+/* Volume slider glow */
+.volume-slider.ytmusic-player-bar:hover,
+.expand-volume-slider.ytmusic-player-bar:hover {
+    --paper-slider-active-color: #fff !important;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.2)) !important;
+}
+/* ============================================================
+   SETTINGS UI — Glassmorphic Design
+   ============================================================ */
+
+/* The main dialog wrapper (Settings, Menus, Popups) */
+tp-yt-paper-dialog, tp-yt-paper-dialog[role="dialog"] {
+    background: var(--pear-glass-bg) !important;
+    backdrop-filter: blur(24px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+    border: 1px solid var(--pear-glass-border) !important;
+    border-radius: var(--pear-radius-lg) !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Make sure the inner container is transparent */
+ytmusic-settings-page, 
+ytmusic-settings-page .content {
+    background: transparent !important;
+}
+
+/* Sidebar in settings */
+ytmusic-setting-category-collection-renderer {
+    background: transparent !important;
+    border-right: 1px solid var(--pear-glass-border) !important;
+}
+
+/* Individual setting items */
+ytmusic-setting-item-renderer {
+    background: transparent !important;
+    padding: 12px 16px !important;
+    border-radius: var(--pear-radius-sm) !important;
+    transition: background 0.2s var(--pear-ease) !important;
+}
+
+ytmusic-setting-item-renderer:hover {
+    background: var(--pear-hover-bg) !important;
+}
+
+/* Dropdowns in settings */
+tp-yt-paper-dropdown-menu {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: var(--pear-radius-sm) !important;
+    padding: 0 12px !important;
+}
+
+/* Listbox container for dropdowns */
+tp-yt-paper-listbox {
+    background: var(--pear-bg-surface) !important;
+    border-radius: var(--pear-radius-sm) !important;
+    border: 1px solid var(--pear-glass-border) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Option items inside dropdown */
+tp-yt-paper-item {
+    transition: background 0.2s var(--pear-ease) !important;
+    border-radius: var(--pear-radius-sm) !important;
+    margin: 2px 4px !important;
+}
+
+tp-yt-paper-item:hover {
+    background: var(--pear-hover-bg) !important;
 }

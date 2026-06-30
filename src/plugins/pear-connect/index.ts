@@ -177,7 +177,6 @@ export default createPlugin({
       // Add Pear Connect button to the UI (with retry)
       const injectButtons = () => {
         this.addConnectButton();
-        this.addSidebarButton();
         // this.addFloatingButton();
       };
 
@@ -338,77 +337,7 @@ export default createPlugin({
       rightContent.parentElement?.insertBefore(button, rightContent);
     },
 
-    addSidebarButton(this: any) {
-      // Check if already added
-      if (document.getElementById('pear-connect-sidebar-item')) return;
 
-      // Find the sidebar items container
-      // We want the main navigation section (Home, Explore, Library)
-      const sidebarSections = document.querySelectorAll('ytmusic-guide-section-renderer');
-      let sidebarItems = null;
-
-      // Find the section that contains "Home" or "Explore"
-      for (const section of Array.from(sidebarSections)) {
-        // Check text content of the section to identify it
-        // The text content usually includes the button labels
-        const text = section.textContent?.toLowerCase() || '';
-        if (text.includes('home') || text.includes('explore') || text.includes('library')) {
-          sidebarItems = section.querySelector('#items');
-          if (sidebarItems) break;
-        }
-      }
-
-      if (!sidebarItems) {
-        // Fallback to the first one found if it has items
-        const firstSection = document.querySelector('ytmusic-guide-section-renderer');
-        sidebarItems = firstSection?.querySelector('#items');
-      }
-
-      if (!sidebarItems) return;
-
-      const item = document.createElement('ytmusic-guide-entry-renderer');
-      item.id = 'pear-connect-sidebar-item';
-      item.className = 'style-scope ytmusic-guide-section-renderer';
-      item.setAttribute('role', 'button');
-      item.setAttribute('tabindex', '0');
-
-      // Use the same structure as other sidebar items
-      item.innerHTML = `
-        <tp-yt-paper-item class="style-scope ytmusic-guide-entry-renderer" role="link" tabindex="-1">
-          <yt-icon class="guide-icon style-scope ytmusic-guide-entry-renderer">
-            <svg viewBox="0 0 24 24" width="24" height="24" style="display: block; width: 100%; height: 100%;">
-              <path fill="currentColor" d="M3.9,12c0-1.71,1.39-3.1,3.1-3.1h4V7H7c-2.76,0-5,2.24-5,5s2.24,5,5,5h4v-1.9H7C5.29,15.1,3.9,13.71,3.9,12z M8,13h8v-2H8V13z M17,7h-4v1.9h4c1.71,0,3.1,1.39,3.1,3.1s-1.39,3.1-3.1,3.1h-4V17h4c2.76,0,5-2.24,5-5S19.76,7,17,7z"/>
-            </svg>
-          </yt-icon>
-          <yt-formatted-string class="title style-scope ytmusic-guide-entry-renderer"></yt-formatted-string>
-        </tp-yt-paper-item>
-      `;
-
-      // Set the text content after the element is created
-      setTimeout(() => {
-        const titleElement = item.querySelector('yt-formatted-string.title');
-        if (titleElement) {
-          // Set text directly
-          titleElement.textContent = 'Pear Connect';
-          // Also set it in the attributed string if it exists
-          const attrString = titleElement.querySelector('yt-attributed-string');
-          if (attrString) {
-            attrString.textContent = 'Pear Connect';
-          }
-          // Remove is-empty attribute if present
-          titleElement.removeAttribute('is-empty');
-        }
-      }, 0);
-
-      item.addEventListener('click', () => {
-        this.showConnectDialog();
-      });
-
-      item.style.cursor = 'pointer';
-
-      // Insert at the top of the list
-      sidebarItems.prepend(item);
-    },
 
     addFloatingButton(this: any) {
       if (document.getElementById('pear-connect-fab')) return;
