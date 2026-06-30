@@ -5,6 +5,9 @@ on:
     branches: [ master, '**' ]
   pull_request:
 
+permissions:
+  contents: write
+
 env:
   NODE_VERSION: "22.x"
 
