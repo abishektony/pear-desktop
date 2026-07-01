@@ -47,7 +47,7 @@ jobs:
 
       # Only vite build without release if it is a fork, or it is a pull-request
       - name: Vite Build
-        if: github.event_name == 'pull_request' || github.repository != 'pear-devs/pear-desktop'
+        if: github.event_name == 'pull_request' || github.repository != 'abishektony/pear-desktop'
         run: |
           pnpm build
 
