@@ -29,6 +29,7 @@ const miniplayerHTML = `
   </div>
 
   <div class="pear-fullscreen-player" id="pear-fullscreen-player">
+    <div class="pear-action-animator" id="pear-action-animator"></div>
     <canvas class="pear-fullscreen-visualizer-bg" id="pear-fullscreen-visualizer-bg"></canvas>
     <div class="pear-visualizer-overlay" id="pear-visualizer-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(8px); background: rgba(0,0,0,0.2);"></div>
     <div class="pear-fullscreen-content" style="position: relative; z-index: 10;">
@@ -108,6 +109,12 @@ const miniplayerHTML = `
             </svg>
             <span class="pear-sleep-timer-badge" id="pear-sleep-timer-badge" style="display: none;"></span>
         </button>
+        <button class="pear-fullscreen-btn sync-lyrics-btn" id="pear-fullscreen-sync-btn" title="Sync Lyrics">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path d="M21 21l-3-3" />
+            </svg>
+        </button>
     </div>
         <button class="pear-fullscreen-btn queue-btn" id="pear-fullscreen-queue-btn" title="Toggle Queue">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -183,6 +190,29 @@ const miniplayerHTML = `
         <button class="pear-sleep-timer-btn primary" id="pear-sleep-timer-start">Start Timer</button>
         <button class="pear-sleep-timer-btn cancel" id="pear-sleep-timer-cancel" style="display: none;">Cancel Timer</button>
         <button class="pear-sleep-timer-btn secondary" id="pear-sleep-timer-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sync Lyrics Modal -->
+  <div class="pear-sleep-timer-modal" id="pear-sync-lyrics-modal">
+    <div class="pear-sleep-timer-content">
+      <div class="pear-sleep-timer-title">Sync Lyrics</div>
+      <div class="pear-sleep-timer-subtitle">Adjust the lyrics offset to sync with the music (in milliseconds)</div>
+      <div class="pear-sleep-timer-options" id="pear-sync-lyrics-options">
+        <button class="pear-sleep-timer-option" data-offset="-1000">-1s</button>
+        <button class="pear-sleep-timer-option" data-offset="-500">-0.5s</button>
+        <button class="pear-sleep-timer-option selected" data-offset="0">0s</button>
+        <button class="pear-sleep-timer-option" data-offset="500">+0.5s</button>
+        <button class="pear-sleep-timer-option" data-offset="1000">+1s</button>
+      </div>
+      <div class="pear-sleep-timer-custom">
+        <span>Or set custom (ms):</span>
+        <input type="number" id="pear-sync-lyrics-custom-input" placeholder="0">
+      </div>
+      <div class="pear-sleep-timer-buttons">
+        <button class="pear-sleep-timer-btn primary" id="pear-sync-lyrics-apply">Apply Sync</button>
+        <button class="pear-sleep-timer-btn secondary" id="pear-sync-lyrics-close">Close</button>
       </div>
     </div>
   </div>
@@ -274,6 +304,14 @@ export class Miniplayer {
     private selectedSleepMinutes: number = 5;
     private waitUntilSongEnds: boolean = true;
     private sleepTimerWaitCheckbox: HTMLInputElement | null = null;
+
+    // Sync Lyrics properties
+    private syncLyricsModal: HTMLElement | null = null;
+    private syncLyricsButton: HTMLButtonElement | null = null;
+    private syncLyricsApplyBtn: HTMLButtonElement | null = null;
+    private syncLyricsCloseBtn: HTMLButtonElement | null = null;
+    private syncLyricsCustomInput: HTMLInputElement | null = null;
+    private syncLyricsOptions: NodeListOf<Element> | null = null;
 
     // Crossfade properties
     private crossfadeDuration: number = 3000; // 3 seconds default
@@ -534,6 +572,14 @@ export class Miniplayer {
         this.sleepTimerCustomInput = this.element.querySelector('#pear-sleep-timer-custom-input');
         this.sleepTimerWaitCheckbox = this.element.querySelector('#pear-sleep-timer-wait-end');
 
+        // Sync Lyrics elements
+        this.syncLyricsModal = this.element.querySelector('#pear-sync-lyrics-modal');
+        this.syncLyricsButton = this.element.querySelector('#pear-fullscreen-sync-btn');
+        this.syncLyricsApplyBtn = this.element.querySelector('#pear-sync-lyrics-apply');
+        this.syncLyricsCloseBtn = this.element.querySelector('#pear-sync-lyrics-close');
+        this.syncLyricsCustomInput = this.element.querySelector('#pear-sync-lyrics-custom-input');
+        this.syncLyricsOptions = this.element.querySelectorAll('#pear-sync-lyrics-options .pear-sleep-timer-option');
+
         // Immersive Player
         this.immersiveToggle = this.element.querySelector('#pear-immersive-toggle');
         if (this.fullscreenPlayer) {
@@ -543,6 +589,351 @@ export class Miniplayer {
         // Seek bar preview elements
         this.miniplayerSeekPreview = this.element.querySelector('#pear-miniplayer-seek-preview');
         this.fullscreenSeekPreview = this.element.querySelector('#pear-fullscreen-seek-preview');
+    }
+
+    private triggerActionAnimation(iconHTML: string, _color: string = '#ffffff', animType: 'pop' | 'sad' | 'slide-left' | 'slide-right' | 'pulse' = 'pop') {
+        const animatorContainer = this.element.querySelector('#pear-action-animator') as HTMLElement;
+        if (!animatorContainer) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const W = 400, H = 400;
+        const canvas = document.createElement('canvas');
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = `${W}px`;
+        canvas.style.height = `${H}px`;
+        canvas.style.position = 'absolute';
+        canvas.style.left = `${-W / 2}px`;
+        canvas.style.top = `${-H / 2}px`;
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '99998';
+        animatorContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d')!;
+        ctx.scale(dpr, dpr);
+        const cx = W / 2, cy = H / 2;
+        const start = performance.now();
+
+        const durations: Record<string, number> = {
+            pulse: 1000, sad: 1200, 'slide-left': 700, 'slide-right': 700, pop: 900
+        };
+        const totalDuration = durations[animType] || 900;
+
+        // Proper heart using the standard top-center start approach
+        const drawHeart = (x: number, y: number, size: number) => {
+            const w = size;
+            const h = size * 1.35; // increased from 1.1 to make the heart longer
+            const topY = y - h * 0.35;
+            ctx.beginPath();
+            ctx.moveTo(x, topY + h * 0.85); // move the bottom tip further down
+            // left bump
+            ctx.bezierCurveTo(x - w * 0.02, topY + h * 0.6, x - w * 0.5, topY + h * 0.55, x - w * 0.5, topY + h * 0.3);
+            ctx.bezierCurveTo(x - w * 0.5, topY, x - w * 0.15, topY - h * 0.05, x, topY + h * 0.2);
+            // right bump
+            ctx.bezierCurveTo(x + w * 0.15, topY - h * 0.05, x + w * 0.5, topY, x + w * 0.5, topY + h * 0.3);
+            ctx.bezierCurveTo(x + w * 0.5, topY + h * 0.55, x + w * 0.02, topY + h * 0.6, x, topY + h * 0.85);
+            ctx.closePath();
+        };
+
+        // Play triangle vertices for morphing (centered around 0,0)
+        const playVerts = (s: number) => [
+            [-s * 0.4, -s * 0.5],
+            [s * 0.5, 0],
+            [-s * 0.4, s * 0.5]
+        ];
+
+        // Pause bar vertices for morphing (two rectangles as 4 corner quads)
+        // Left bar: 4 corners, Right bar: 4 corners — we'll draw as two rects
+        const drawMorphedPlayPause = (x: number, y: number, size: number, morphT: number) => {
+            // morphT: 0 = play triangle, 1 = pause bars
+            const s = size;
+            // Play points (triangle)
+            const pL = -s * 0.4, pR = s * 0.5, pT = -s * 0.5, pB = s * 0.5;
+            // Pause geometry
+            const bw = s * 0.22;  // bar width
+            const gap = s * 0.13; // half-gap between bars
+            const bT = -s * 0.45, bB = s * 0.45;
+
+            // Morph: triangle left edge splits into two bars
+            // Left bar corners
+            const lb_tl_x = x + lerp(pL, -gap - bw, morphT);
+            const lb_tl_y = y + lerp(pT, bT, morphT);
+            const lb_tr_x = x + lerp(pL, -gap, morphT);
+            const lb_tr_y = y + lerp(pT * 0.15, bT, morphT);
+            const lb_br_x = x + lerp(pL, -gap, morphT);
+            const lb_br_y = y + lerp(pB * 0.15, bB, morphT);
+            const lb_bl_x = x + lerp(pL, -gap - bw, morphT);
+            const lb_bl_y = y + lerp(pB, bB, morphT);
+
+            // Right bar / triangle tip
+            const rb_tl_x = x + lerp(pR * 0.2, gap, morphT);
+            const rb_tl_y = y + lerp(pT * 0.6, bT, morphT);
+            const rb_tr_x = x + lerp(pR, gap + bw, morphT);
+            const rb_tr_y = y + lerp(0, bT, morphT);
+            const rb_br_x = x + lerp(pR, gap + bw, morphT);
+            const rb_br_y = y + lerp(0, bB, morphT);
+            const rb_bl_x = x + lerp(pR * 0.2, gap, morphT);
+            const rb_bl_y = y + lerp(pB * 0.6, bB, morphT);
+
+            // Draw left shape
+            ctx.beginPath();
+            ctx.moveTo(lb_tl_x, lb_tl_y);
+            ctx.lineTo(lb_tr_x, lb_tr_y);
+            ctx.lineTo(lb_br_x, lb_br_y);
+            ctx.lineTo(lb_bl_x, lb_bl_y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw right shape
+            ctx.beginPath();
+            ctx.moveTo(rb_tl_x, rb_tl_y);
+            ctx.lineTo(rb_tr_x, rb_tr_y);
+            ctx.lineTo(rb_br_x, rb_br_y);
+            ctx.lineTo(rb_bl_x, rb_bl_y);
+            ctx.closePath();
+            ctx.fill();
+        };
+
+        const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+        const drawPrev = (x: number, y: number, size: number) => {
+            const s = size * 0.45;
+            ctx.beginPath();
+            ctx.moveTo(x + s * 0.5, y - s);
+            ctx.lineTo(x - s * 0.5, y);
+            ctx.lineTo(x + s * 0.5, y + s);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(x - s * 0.75, y - s * 0.9, s * 0.18, s * 1.8);
+        };
+
+        const drawNext = (x: number, y: number, size: number) => {
+            const s = size * 0.45;
+            ctx.beginPath();
+            ctx.moveTo(x - s * 0.5, y - s);
+            ctx.lineTo(x + s * 0.5, y);
+            ctx.lineTo(x - s * 0.5, y + s);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(x + s * 0.57, y - s * 0.9, s * 0.18, s * 1.8);
+        };
+
+        const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+        const easeInOut = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const animate = (now: number) => {
+            const elapsed = now - start;
+            const t = Math.min(elapsed / totalDuration, 1);
+            ctx.clearRect(0, 0, W, H);
+
+            switch (animType) {
+                case 'pulse': {
+                    // Heart pumps twice then fades up
+                    let scale = 1, alpha = 1, yOff = 0;
+
+                    if (t < 0.15) {
+                        scale = easeOut(t / 0.15) * 1.4;
+                        alpha = easeOut(t / 0.15);
+                    } else if (t < 0.25) {
+                        scale = 1.4 - (t - 0.15) / 0.1 * 0.4;
+                    } else if (t < 0.4) {
+                        scale = 1.0 + easeOut((t - 0.25) / 0.15) * 0.5;
+                    } else if (t < 0.55) {
+                        scale = 1.5 - (t - 0.4) / 0.15 * 0.5;
+                    } else {
+                        const ft = (t - 0.55) / 0.45;
+                        scale = 1.0 + ft * 0.15;
+                        alpha = 1 - easeInOut(ft);
+                        yOff = -ft * 50;
+                    }
+
+                    ctx.save();
+                    ctx.translate(cx, cy + yOff);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = alpha;
+                    ctx.shadowBlur = 30 * alpha;
+                    ctx.shadowColor = '#ff2a5f';
+                    ctx.fillStyle = '#ff2a5f';
+                    drawHeart(0, 0, 80);
+                    ctx.fill();
+                    ctx.restore();
+                    break;
+                }
+
+                case 'sad': {
+                    // Heart appears, crack, splits
+                    const HS = 80;
+                    if (t < 0.15) {
+                        const at = easeOut(t / 0.15);
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.scale(at * 1.1, at * 1.1);
+                        ctx.globalAlpha = at;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = 'rgba(255,255,255,0.4)';
+                        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                        drawHeart(0, 0, HS);
+                        ctx.fill();
+                        ctx.restore();
+                    } else if (t < 0.4) {
+                        const crackT = (t - 0.15) / 0.25;
+                        ctx.save();
+                        ctx.translate(cx, cy);
+                        ctx.globalAlpha = 1;
+                        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = 'rgba(255,255,255,0.3)';
+                        drawHeart(0, 0, HS);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.strokeStyle = '#222';
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        const pts = [[0,-40],[-5,-25],[6,-10],[-4,5],[5,20],[-3,35],[0,48]];
+                        const drawTo = Math.floor(crackT * pts.length);
+                        ctx.moveTo(pts[0][0], pts[0][1]);
+                        for (let i = 1; i <= drawTo && i < pts.length; i++) {
+                            ctx.lineTo(pts[i][0], pts[i][1]);
+                        }
+                        ctx.stroke();
+                        ctx.restore();
+                    } else {
+                        const splitT = (t - 0.4) / 0.6;
+                        const eased = easeInOut(splitT);
+                        const leftX = -eased * 45;
+                        const rightX = eased * 45;
+                        const fallY = eased * eased * 70;
+                        const alpha = 1 - easeInOut(Math.max(0, (splitT - 0.35) / 0.65));
+
+                        ctx.save();
+                        ctx.translate(cx + leftX, cy + fallY);
+                        ctx.rotate(-eased * 0.45);
+                        ctx.globalAlpha = alpha;
+                        ctx.beginPath();
+                        ctx.rect(-90, -90, 90, 180);
+                        ctx.clip();
+                        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = 'rgba(255,255,255,0.2)';
+                        drawHeart(0, 0, HS);
+                        ctx.fill();
+                        ctx.restore();
+
+                        ctx.save();
+                        ctx.translate(cx + rightX, cy + fallY);
+                        ctx.rotate(eased * 0.45);
+                        ctx.globalAlpha = alpha;
+                        ctx.beginPath();
+                        ctx.rect(0, -90, 90, 180);
+                        ctx.clip();
+                        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowColor = 'rgba(255,255,255,0.2)';
+                        drawHeart(0, 0, HS);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                    break;
+                }
+
+                case 'slide-left': {
+                    let alpha = 1, xOff = 0, scale = 1;
+                    if (t < 0.2) {
+                        const at = easeOut(t / 0.2);
+                        alpha = at; scale = 0.5 + at * 0.6;
+                    } else if (t < 0.5) {
+                        scale = 1.1 - (t - 0.2) / 0.3 * 0.1;
+                    } else {
+                        const st = (t - 0.5) / 0.5;
+                        xOff = -easeInOut(st) * 100;
+                        alpha = 1 - easeInOut(st);
+                        scale = 1 - st * 0.15;
+                    }
+                    ctx.save();
+                    ctx.translate(cx + xOff, cy);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = alpha;
+                    ctx.shadowBlur = 25 * alpha;
+                    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    drawPrev(0, 0, 90);
+                    ctx.restore();
+                    break;
+                }
+
+                case 'slide-right': {
+                    let alpha = 1, xOff = 0, scale = 1;
+                    if (t < 0.2) {
+                        const at = easeOut(t / 0.2);
+                        alpha = at; scale = 0.5 + at * 0.6;
+                    } else if (t < 0.5) {
+                        scale = 1.1 - (t - 0.2) / 0.3 * 0.1;
+                    } else {
+                        const st = (t - 0.5) / 0.5;
+                        xOff = easeInOut(st) * 100;
+                        alpha = 1 - easeInOut(st);
+                        scale = 1 - st * 0.15;
+                    }
+                    ctx.save();
+                    ctx.translate(cx + xOff, cy);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = alpha;
+                    ctx.shadowBlur = 25 * alpha;
+                    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    drawNext(0, 0, 90);
+                    ctx.restore();
+                    break;
+                }
+
+                case 'pop':
+                default: {
+                    // Play↔Pause morph
+                    const isPausing = iconHTML.includes('rect');
+                    let alpha = 1, scale = 1, morphT = 0;
+
+                    if (t < 0.15) {
+                        // Pop in showing the FROM state
+                        const at = easeOut(t / 0.15);
+                        alpha = at; scale = 0.3 + at * 0.9;
+                        morphT = isPausing ? 0 : 1; // start as play or pause
+                    } else if (t < 0.25) {
+                        scale = 1.15 - (t - 0.15) / 0.1 * 0.15;
+                        morphT = isPausing ? 0 : 1;
+                    } else if (t < 0.6) {
+                        // Morph to target state
+                        const mt = easeInOut((t - 0.25) / 0.35);
+                        morphT = isPausing ? mt : 1 - mt;
+                        scale = 1;
+                    } else {
+                        // Fade out
+                        const ft = (t - 0.6) / 0.4;
+                        alpha = 1 - easeInOut(ft);
+                        scale = 1 + ft * 0.15;
+                        morphT = isPausing ? 1 : 0;
+                    }
+
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.scale(scale, scale);
+                    ctx.globalAlpha = alpha;
+                    ctx.shadowBlur = 25 * alpha;
+                    ctx.shadowColor = 'rgba(255,255,255,0.5)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+                    drawMorphedPlayPause(0, 0, 80, morphT);
+                    ctx.restore();
+                    break;
+                }
+            }
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                canvas.remove();
+            }
+        };
+
+        requestAnimationFrame(animate);
     }
 
     /**
@@ -624,6 +1015,58 @@ export class Miniplayer {
             }
         });
 
+        // Drag-to-seek on miniplayer seek bar
+        let isScrubbing = false;
+        const doSeek = (clientX: number) => {
+            const rect = this.seekBar!.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            const video = document.querySelector('video');
+            if (video && video.duration) {
+                video.currentTime = percent * video.duration;
+                // Live-update the progress bar while scrubbing
+                if (this.seekProgress) {
+                    this.seekProgress.style.width = `${percent * 100}%`;
+                }
+            }
+        };
+
+        this.seekBar?.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isScrubbing = true;
+            this.seekBar!.classList.add('scrubbing');
+            doSeek(e.clientX);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isScrubbing) return;
+            doSeek(e.clientX);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!isScrubbing) return;
+            isScrubbing = false;
+            this.seekBar?.classList.remove('scrubbing');
+        });
+
+        // Touch support for scrubbing
+        this.seekBar?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isScrubbing = true;
+            this.seekBar!.classList.add('scrubbing');
+            doSeek(e.touches[0].clientX);
+        }, { passive: false });
+
+        this.seekBar?.addEventListener('touchmove', (e) => {
+            if (!isScrubbing) return;
+            e.preventDefault();
+            doSeek(e.touches[0].clientX);
+        }, { passive: false });
+
+        this.seekBar?.addEventListener('touchend', () => {
+            isScrubbing = false;
+            this.seekBar?.classList.remove('scrubbing');
+        });
+
         if (this.thumbnailElement) {
             this.thumbnailElement.addEventListener('click', () => {
                 if (!this.config.clickToSwitch) return;
@@ -654,10 +1097,18 @@ export class Miniplayer {
 
         // Fullscreen player event listeners with touch/stylus support
         this.setupButtonHandler(this.fullscreenPlayButton, () => {
+            const video = document.querySelector('video');
+            const isPaused = video?.paused;
+            
+            if (isPaused) {
+                this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`);
+            } else {
+                this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`);
+            }
+            
             // Use playerApi if available, otherwise fall back to DOM click
             if (this.playerApi) {
-                const video = document.querySelector('video');
-                if (video?.paused) {
+                if (isPaused) {
                     this.playerApi.playVideo();
                 } else {
                     this.playerApi.pauseVideo();
@@ -669,6 +1120,7 @@ export class Miniplayer {
         });
 
         this.setupButtonHandler(this.fullscreenPrevButton, () => {
+            this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>`, '#ffffff', 'slide-left');
             // Use playerApi if available, otherwise fall back to DOM click
             if (this.playerApi) {
                 this.playerApi.previousVideo();
@@ -679,6 +1131,7 @@ export class Miniplayer {
         });
 
         this.setupButtonHandler(this.fullscreenNextButton, () => {
+            this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>`, '#ffffff', 'slide-right');
             // Use playerApi if available, otherwise fall back to DOM click
             if (this.playerApi) {
                 this.playerApi.nextVideo();
@@ -689,6 +1142,15 @@ export class Miniplayer {
         });
 
         this.setupButtonHandler(this.fullscreenLikeButton, () => {
+            const isLiked = this.fullscreenLikeButton?.classList.contains('active');
+            if (isLiked) {
+                // Changing to unliked (Sad animation)
+                this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`, '#ffffff', 'sad');
+            } else {
+                // Changing to liked (Happy pulse animation)
+                this.triggerActionAnimation(`<svg width="60" height="60" viewBox="0 0 24 24" fill="#ff2a5f" stroke="#ff2a5f" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`, '#ff2a5f', 'pulse');
+            }
+
             // Try better selectors to find the actual like button, not the dislike button
             const likeButton = document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer .like button') ||
                 document.querySelector<HTMLElement>('ytmusic-player-bar ytmusic-like-button-renderer yt-button-shape.like button') ||
@@ -897,6 +1359,53 @@ export class Miniplayer {
         this.sleepTimerModal?.addEventListener('click', (e) => {
             if (e.target === this.sleepTimerModal) {
                 this.closeSleepTimerModal();
+            }
+        });
+
+        // ===== Sync Lyrics Event Listeners =====
+        this.setupButtonHandler(this.syncLyricsButton, () => {
+            if (this.syncLyricsModal) {
+                this.syncLyricsModal.classList.add('active');
+            }
+        });
+
+        this.setupButtonHandler(this.syncLyricsCloseBtn, () => {
+            if (this.syncLyricsModal) {
+                this.syncLyricsModal.classList.remove('active');
+            }
+        });
+
+        this.syncLyricsModal?.addEventListener('click', (e) => {
+            if (e.target === this.syncLyricsModal) {
+                this.syncLyricsModal?.classList.remove('active');
+            }
+        });
+
+        let selectedSyncOffset = 0;
+
+        if (this.syncLyricsOptions) {
+            this.syncLyricsOptions.forEach((option) => {
+                option.addEventListener('click', () => {
+                    this.syncLyricsOptions?.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedSyncOffset = parseInt(option.getAttribute('data-offset') || '0');
+                    if (this.syncLyricsCustomInput) {
+                        this.syncLyricsCustomInput.value = '';
+                    }
+                });
+            });
+        }
+
+        this.syncLyricsCustomInput?.addEventListener('input', () => {
+            this.syncLyricsOptions?.forEach(opt => opt.classList.remove('selected'));
+            selectedSyncOffset = parseInt(this.syncLyricsCustomInput?.value || '0');
+        });
+
+        this.setupButtonHandler(this.syncLyricsApplyBtn, () => {
+            // @ts-ignore
+            window.pearLyricsOffset = selectedSyncOffset;
+            if (this.syncLyricsModal) {
+                this.syncLyricsModal.classList.remove('active');
             }
         });
     }

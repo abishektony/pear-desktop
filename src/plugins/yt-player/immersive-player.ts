@@ -411,7 +411,7 @@ export class ImmersivePlayer {
 
         const volumeDiv = this.fullscreenPlayer.querySelector('.pear-fullscreen-volume') as HTMLElement;
         if (volumeDiv) {
-            this.moveElementRef(volumeDiv, rightGroup);
+            this.moveElementRef(volumeDiv, centerGroup);
         } else {
             // Create a custom volume slider if not found
             const customVolume = document.createElement('div');
@@ -562,6 +562,8 @@ export class ImmersivePlayer {
 
         // Removed Queue and Lyrics buttons moving
 
+        this.moveElement('#pear-fullscreen-sleep-btn', rightGroup);
+        this.moveElement('#pear-fullscreen-sync-btn', rightGroup);
         this.moveElement('#pear-immersive-toggle', rightGroup);
         this.moveElement('#pear-fullscreen-close', rightGroup);
 
@@ -796,7 +798,26 @@ export class ImmersivePlayer {
     }
 
     private handleResize() {
-        if (window.innerWidth < 800) {
+        const width = window.innerWidth;
+
+        // Manage volume position
+        const volumeDiv = this.fullscreenPlayer.querySelector('.pear-fullscreen-volume');
+        const centerGroup = this.fullscreenPlayer.querySelector('.pear-immersive-group.center');
+        const rightGroup = this.fullscreenPlayer.querySelector('.pear-immersive-group.right');
+        
+        if (volumeDiv && centerGroup && rightGroup) {
+            if (width <= 640) {
+                if (volumeDiv.parentElement !== rightGroup) {
+                    rightGroup.insertBefore(volumeDiv, rightGroup.firstChild);
+                }
+            } else {
+                if (volumeDiv.parentElement !== centerGroup) {
+                    centerGroup.appendChild(volumeDiv);
+                }
+            }
+        }
+
+        if (width < 800) {
             // Force disable Zen Mode on small screens
             if (this.zenMode) {
                 this.setZenMode(false, false); // false = don't update preference

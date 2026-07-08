@@ -53,10 +53,12 @@ export const renderer = createRenderer<
   },
   async videoDataChange() {
     if (!this.updateTimestampInterval) {
-      this.updateTimestampInterval = setInterval(
-        () => setCurrentTime((_ytAPI?.getCurrentTime() ?? 0) * 1000),
-        100,
-      );
+      this.updateTimestampInterval = setInterval(() => {
+        const baseTime = (_ytAPI?.getCurrentTime() ?? 0) * 1000;
+        // @ts-ignore
+        const offset = window.pearLyricsOffset || 0;
+        setCurrentTime(baseTime + offset);
+      }, 100);
     }
 
     // prettier-ignore
