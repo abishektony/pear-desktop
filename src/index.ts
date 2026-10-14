@@ -124,6 +124,10 @@ app.commandLine.appendSwitch(
 );
 // Disable Fluent Scrollbar (for OverlayScrollbar)
 app.commandLine.appendSwitch('disable-features', 'FluentScrollbar');
+// Prevent Chromium from throttling video/audio decoding when minimized or in background
+app.commandLine.appendSwitch('disable-background-media-suspend');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
 if (config.get('options.disableHardwareAcceleration')) {
   if (is.dev()) {
     console.log('Disabling hardware acceleration');
@@ -362,6 +366,7 @@ async function createMainWindow() {
     show: false,
     webPreferences: {
       contextIsolation: true,
+      backgroundThrottling: false,
       preload: path.join(__dirname, '..', 'preload', 'preload.cjs'),
       ...(isTesting()
         ? undefined

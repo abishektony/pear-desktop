@@ -87,3 +87,19 @@ tp-yt-iron-dropdown,
 tp-yt-paper-dialog {
   app-region: no-drag;
 }
+
+/* Hide ytmusic-player-page when minimized in small screen phone mode */
+@media (max-width: 640px) {
+  ytmusic-app-layout:not([player-page-open]) ytmusic-player-page,
+  ytmusic-app-layout:not([player-page-open]) #player-page {
+    position: fixed !important;
+    top: -99999px !important;
+    left: -99999px !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -99999 !important;
+    overflow: hidden !important;
+  }
+}

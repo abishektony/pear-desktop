@@ -879,6 +879,19 @@ ytmusic-player-bar tp-yt-paper-icon-button:active {
         display: none !important;
     }
 
+    ytmusic-app-layout:not([player-page-open]) ytmusic-player-page,
+    ytmusic-app-layout:not([player-page-open]) #player-page {
+        position: fixed !important;
+        top: -99999px !important;
+        left: -99999px !important;
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        z-index: -99999 !important;
+        overflow: hidden !important;
+    }
+
     ytmusic-browse-response {
         width: 100% !important;
         max-width: 100% !important;

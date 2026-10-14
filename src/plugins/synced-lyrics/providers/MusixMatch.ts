@@ -35,8 +35,16 @@ export class MusixMatch implements LyricProvider {
     const lyrics = getter('track.lyrics.get')?.lyrics?.lyrics_body;
     const subtitle = getter('track.subtitles.get')?.subtitle_list?.[0];
 
-    // either no track found, or musixmatch's algorithm returned "Coldplay - Paradise" for no reason whatsoever
-    if (!track || track.track_id === 115264642) return null;
+    // either no track found, or musixmatch's algorithm returned honeypot/dummy data
+    // (Coldplay - Paradise 115264642, Drake - NOKIA 226291677, or scrambled Tatar "Wob gopini den" lyrics)
+    if (
+      !track ||
+      track.track_id === 115264642 ||
+      track.track_id === 226291677 ||
+      lyrics?.startsWith('Wob gopini den')
+    ) {
+      return null;
+    }
 
     return {
       title: track.track_name,
@@ -207,7 +215,7 @@ class MusixMatchAPI {
     );
 
     const [, json, headers] = await netFetch(`${url}?${clonedParams}`, {
-      headers: { Cookie: this.cookie },
+      headers: Object.assign({ Cookie: this.cookie }, this.headers),
     });
 
     const setCookie = Object.entries(headers).find(
@@ -257,12 +265,20 @@ class MusixMatchAPI {
 
   private key = 'ytm:synced-lyrics:mxm:token';
   private async init() {
-    const { token, expires } = this.savedTokenSchema.parse(
-      JSON.parse(localStorage.getItem(this.key) ?? '{ "token": null }'),
-    );
-    if (token && expires > Date.now()) {
-      this.token = token;
-      return;
+    const raw = localStorage.getItem(this.key);
+    if (raw) {
+      try {
+        const { token, expires } = this.savedTokenSchema.parse(JSON.parse(raw));
+        if (
+          token &&
+          typeof token === 'string' &&
+          token.replace(/0/g, '') !== '' &&
+          expires > Date.now()
+        ) {
+          this.token = token;
+          return;
+        }
+      } catch (_) {}
     }
 
     localStorage.removeItem(this.key);
@@ -305,12 +321,16 @@ class MusixMatchAPI {
     const {
       message: { body },
     } = this.tokenSchema.parse(JSON.parse(json));
-    return body?.user_token ?? '';
+    const userToken = body?.user_token ?? '';
+    if (!userToken || userToken.replace(/0/g, '') === '') {
+      return '';
+    }
+    return userToken;
   }
 
-  private readonly baseUrl = 'https://apic-desktop.musixmatch.com/ws/1.1/';
-  private readonly app_id = 'web-desktop-app-v1.0';
+  private readonly baseUrl = 'https://apic.musixmatch.com/ws/1.1/';
+  private readonly app_id = 'android-player-v1.0';
   private readonly headers = {
-    Authority: 'apic-desktop.musixmatch.com',
+    Authority: 'apic.musixmatch.com',
   };
 }

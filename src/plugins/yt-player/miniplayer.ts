@@ -1363,7 +1363,80 @@ export class Miniplayer {
         });
 
         // ===== Sync Lyrics Event Listeners =====
+        const getSongKeyForLyrics = (): string => {
+            if ((window as any).getPearSongLyricsKey) {
+                return (window as any).getPearSongLyricsKey((window as any).pearCurrentSongInfo);
+            }
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const v = urlParams.get('v');
+                if (v) return v;
+            } catch (_) {}
+            const titleEl = document.querySelector('.title.ytmusic-player-bar');
+            const artistEl = document.querySelector('.byline.ytmusic-player-bar');
+            const t = titleEl?.textContent?.trim().toLowerCase() || '';
+            const a = artistEl?.textContent?.trim().toLowerCase() || '';
+            return t ? `${t}:::${a}` : '';
+        };
+
+        const getSavedOffsetForLyrics = (key: string): number => {
+            if ((window as any).getPearSavedLyricsOffset) {
+                return (window as any).getPearSavedLyricsOffset(key);
+            }
+            try {
+                const raw = localStorage.getItem('pear-lyrics-offsets');
+                return raw ? (JSON.parse(raw)[key] || 0) : 0;
+            } catch (_) {
+                return 0;
+            }
+        };
+
+        const saveOffsetForLyrics = (key: string, offset: number): void => {
+            if ((window as any).savePearLyricsOffset) {
+                (window as any).savePearLyricsOffset(key, offset);
+                return;
+            }
+            try {
+                const raw = localStorage.getItem('pear-lyrics-offsets');
+                const offsets = raw ? JSON.parse(raw) : {};
+                if (offset === 0) {
+                    delete offsets[key];
+                } else {
+                    offsets[key] = offset;
+                }
+                localStorage.setItem('pear-lyrics-offsets', JSON.stringify(offsets));
+            } catch (_) {}
+        };
+
+        let selectedSyncOffset = 0;
+
         this.setupButtonHandler(this.syncLyricsButton, () => {
+            const songKey = getSongKeyForLyrics();
+            const currentOffset = songKey ? getSavedOffsetForLyrics(songKey) : ((window as any).pearLyricsOffset || 0);
+            selectedSyncOffset = currentOffset;
+
+            // Highlight the corresponding preset option or fill custom input
+            let matchedPreset = false;
+            if (this.syncLyricsOptions) {
+                this.syncLyricsOptions.forEach((option) => {
+                    const optOffset = parseInt(option.getAttribute('data-offset') || '0');
+                    if (optOffset === currentOffset) {
+                        option.classList.add('selected');
+                        matchedPreset = true;
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+            }
+
+            if (this.syncLyricsCustomInput) {
+                if (matchedPreset) {
+                    this.syncLyricsCustomInput.value = '';
+                } else {
+                    this.syncLyricsCustomInput.value = currentOffset !== 0 ? String(currentOffset) : '';
+                }
+            }
+
             if (this.syncLyricsModal) {
                 this.syncLyricsModal.classList.add('active');
             }
@@ -1380,8 +1453,6 @@ export class Miniplayer {
                 this.syncLyricsModal?.classList.remove('active');
             }
         });
-
-        let selectedSyncOffset = 0;
 
         if (this.syncLyricsOptions) {
             this.syncLyricsOptions.forEach((option) => {
@@ -1404,8 +1475,28 @@ export class Miniplayer {
         this.setupButtonHandler(this.syncLyricsApplyBtn, () => {
             // @ts-ignore
             window.pearLyricsOffset = selectedSyncOffset;
+            const songKey = getSongKeyForLyrics();
+            if (songKey) {
+                saveOffsetForLyrics(songKey, selectedSyncOffset);
+            }
             if (this.syncLyricsModal) {
                 this.syncLyricsModal.classList.remove('active');
+            }
+        });
+
+        // Auto-restore saved per-song delay whenever a new track loads
+        document.addEventListener('peard:update-song-info', (e: any) => {
+            const info = e.detail;
+            const songKey = (window as any).getPearSongLyricsKey
+                ? (window as any).getPearSongLyricsKey(info)
+                : (info?.videoId || (info?.title ? `${info.title.trim().toLowerCase()}:::${(info.artist || '').trim().toLowerCase()}` : ''));
+            if (songKey) {
+                const saved = getSavedOffsetForLyrics(songKey);
+                // @ts-ignore
+                window.pearLyricsOffset = saved;
+            } else {
+                // @ts-ignore
+                window.pearLyricsOffset = 0;
             }
         });
     }
