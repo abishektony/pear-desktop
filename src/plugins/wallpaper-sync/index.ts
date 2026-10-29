@@ -1,8 +1,27 @@
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { screen } from 'electron';
 
 import { createPlugin } from '@/utils';
 import { registerCallback, type SongInfo } from '@/providers/song-info';
+
+function getDisplaysInfo() {
+  try {
+    const all = screen.getAllDisplays();
+    const primary = screen.getPrimaryDisplay();
+    return {
+      count: all.length,
+      primaryId: primary?.id,
+      displays: all.map((d) => ({
+        id: d.id,
+        bounds: d.bounds,
+        isPrimary: d.id === primary?.id,
+      })),
+    };
+  } catch (_) {
+    return { count: 1, displays: [] };
+  }
+}
 
 export interface WallpaperSyncConfig {
   enabled: boolean;
@@ -96,6 +115,18 @@ export default createPlugin<
         });
       });
 
+      const onDisplayChange = () => {
+        this.broadcast({
+          type: 'DISPLAYS_INFO',
+          displays: getDisplaysInfo(),
+        });
+      };
+      try {
+        screen.on('display-added', onDisplayChange);
+        screen.on('display-removed', onDisplayChange);
+        screen.on('display-metrics-changed', onDisplayChange);
+      } catch (_) {}
+
       const cfg = await ctx.getConfig();
       this.startServer(cfg.port || 26540, ctx);
     },
@@ -117,6 +148,7 @@ export default createPlugin<
             JSON.stringify({
               app: 'Pear Desktop',
               hasVideo: this.hasVideo,
+              displays: getDisplaysInfo(),
               song: this.currentSong
                 ? {
                     title: this.currentSong.title,
@@ -133,11 +165,12 @@ export default createPlugin<
         this.wss.on('connection', (ws: WebSocket) => {
           this.clients.add(ws);
 
-          // Send current song state immediately
+          // Send current display setup and song state immediately
           ws.send(
             JSON.stringify({
               type: 'INIT',
               hasVideo: this.hasVideo,
+              displays: getDisplaysInfo(),
               song: this.currentSong
                 ? {
                     title: this.currentSong.title,

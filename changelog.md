@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v3.13.0](https://github.com/pear-devs/pear-desktop/compare/v3.12.2...v3.13.0)
+
+- feat(wallpaper-sync): Add Wallpaper Sync plugin broadcasting live song metadata, playback progress, and album art over WebSocket
+- feat(wallpaper-sync): Add dynamic multi-monitor display detection and real-time screen topology change broadcasting (`DISPLAYS_INFO`)
+- feat(synced-lyrics): Integrate MusixMatch synced lyrics provider with fallback and synchronization pipeline
+- feat(yt-player): Introduce YouTube player plugin with Picture-in-Picture (PiP) and modular components
+- feat(pear-connect): Polish remote playback controls, clean up lyrics interface, and enhance responsive styling
+- fix(ui): Smooth transition animations and glassmorphic aesthetic polish across desktop components
+
 #### [v3.12.1](https://github.com/pear-devs/pear-desktop/compare/v3.12.0...v3.12.1)
 
 - fix(ui): Correctly hide immersive fallback album art when music videos are playing

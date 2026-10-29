@@ -927,7 +927,6 @@ export class PearConnectBackend {
             <div class="track-artist" id="trackArtist">—</div>
           </div>
           <div class="lyrics-section" id="lyricsSection">
-            <div class="lyrics-icon">🎵</div>
             <div class="lyrics-current" id="lyricsCurrent"></div>
             <div class="lyrics-next" id="lyricsNext"></div>
             <div class="lyrics-empty" id="lyricsEmpty">Lyrics will appear here</div>
