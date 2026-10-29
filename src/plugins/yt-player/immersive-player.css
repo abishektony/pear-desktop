@@ -126,37 +126,55 @@ video.pear-immersive-video {
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    /* Cinematic vignette — heaviest at bottom, subtle at edges */
+    overflow: hidden;
+    /* Softened cinematic vignette — subtle at bottom to complement translucent bar */
     background:
         linear-gradient(to top,
-            rgba(0, 0, 0, 0.92) 0%,
-            rgba(0, 0, 0, 0.6) 8%,
-            rgba(0, 0, 0, 0.2) 22%,
-            transparent 42%),
-        radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.3) 100%);
+            rgba(0, 0, 0, 0.55) 0%,
+            rgba(0, 0, 0, 0.3) 10%,
+            rgba(0, 0, 0, 0.08) 22%,
+            transparent 38%),
+        radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.25) 100%);
     transition: opacity 0.4s ease;
 }
 
-/* ===== Bottom Bar — Solid, Elevated ===== */
+/* ===== Bottom Bar — Translucent Glass Controls ===== */
 .pear-immersive-bottom-bar {
+    position: relative;
+    z-index: 40;
     width: 100%;
     max-width: min(96vw, 1200px);
     margin: 0 auto;
-    padding: clamp(14px, 2vw, 22px) 0 clamp(22px, 3.5vw, 44px);
+    padding: clamp(14px, 2vw, 22px) 0 clamp(18px, 3.5vw, 35px);
     box-sizing: border-box;
     pointer-events: auto;
     display: flex;
     flex-direction: column;
-    gap: clamp(10px, 1.5vw, 16px);
-    /* Solid dark — no more translucency */
-    background: #0d0d10;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    gap: clamp(5px, 1.5vw, 10px);
+    /* Translucent dark glass — safe alpha blending without heavy backdrop-filter to prevent GPU shader crashes over hardware video */
+    background: linear-gradient(180deg, rgba(20, 20, 26, 0.86) 0%, rgba(13, 13, 17, 0.90) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     border-bottom: none;
     border-radius: 24px 24px 0 0;
     box-shadow:
-        0 -1px 0 rgba(255, 255, 255, 0.06),
-        0 -12px 60px rgba(0, 0, 0, 0.8),
-        0 -2px 24px rgba(0, 0, 0, 0.5);
+        0 -1px 0 rgba(255, 255, 255, 0.08),
+        0 -12px 48px rgba(0, 0, 0, 0.55),
+        0 -2px 16px rgba(0, 0, 0, 0.35);
+    /* Controls are up and visible by default in immersive mode on big screen */
+    transform: translateY(0);
+    opacity: 1;
+    transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.28s ease;
+    will-change: transform, opacity;
+}
+
+/* Bottom bar active / hovered / focused */
+.pear-immersive-ui.bottom-active .pear-immersive-bottom-bar,
+.pear-immersive-ui:not(.zen-mode) .pear-immersive-bottom-bar:hover,
+.pear-immersive-ui:not(.zen-mode) .pear-immersive-bottom-bar:focus-within {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* ===== Controls Row ===== */
@@ -524,6 +542,8 @@ video.pear-immersive-video {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 82%, transparent 100%);
     z-index: 15;
     pointer-events: auto;
+    contain: layout style;
+    transform: translateZ(0);
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -533,7 +553,7 @@ video.pear-immersive-video {
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
+    transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
     will-change: transform;
 }
 
@@ -541,7 +561,7 @@ video.pear-immersive-video {
 .lyric-line-interactive {
     font-size: clamp(20px, 3.2vw, 36px);
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.28);
+    color: rgba(255, 255, 255, 0.3);
     font-family: 'Google Sans', 'Roboto', system-ui, sans-serif;
     text-shadow: none;
     text-align: center;
@@ -549,33 +569,40 @@ video.pear-immersive-video {
     padding: 10px 20px;
     box-sizing: border-box;
     cursor: pointer;
-    transition: color 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
-                filter 0.35s ease;
+    transition: color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+                transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
     transform-origin: center center;
-    filter: blur(1.5px);
     max-width: 860px;
     width: 100%;
     border-radius: 12px;
     line-height: 1.35;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 .lyric-line-interactive:hover {
-    color: rgba(255, 255, 255, 0.65);
+    color: rgba(255, 255, 255, 0.75);
     transform: scale(1.02);
-    filter: blur(0);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .lyric-line-interactive.active {
     color: #fff;
-    filter: blur(0);
-    transform: scale(1.06);
-    text-shadow: 0 0 40px rgba(255, 255, 255, 0.18);
+    opacity: 1;
+    transform: scale(1.05);
+    text-shadow: 0 0 35px rgba(255, 255, 255, 0.22);
 }
 
 .lyric-line-interactive.past {
-    color: rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.24);
+    opacity: 0.75;
+}
+
+.lyric-line-interactive.next {
+    color: rgba(255, 255, 255, 0.32);
+    opacity: 0.85;
 }
 
 .lyric-romanized {
@@ -583,7 +610,7 @@ video.pear-immersive-video {
     font-size: 0.72em;
     margin-top: 5px;
     font-weight: 400;
-    opacity: 0.6;
+    opacity: 0.65;
     letter-spacing: 0.01em;
 }
 
@@ -618,30 +645,37 @@ video.pear-immersive-video {
     margin: 0;
     padding: 0 44px;
     box-sizing: border-box;
-    transition: all 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
-    transform-origin: center bottom;
-    will-change: transform, opacity, filter;
-    line-height: 1.3;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform-origin: center center;
+    will-change: transform, opacity;
+    line-height: 1.35;
+    pointer-events: none;
+    backface-visibility: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 .lyric-line.active {
     opacity: 1;
-    transform: translateY(0) scale(1) rotateX(0deg);
-    filter: blur(0);
+    transform: translate3d(0, 0, 0) scale(1);
     z-index: 10;
 }
 
 .lyric-line.prev-1 {
-    opacity: 0.38;
-    transform: translateY(-48px) scale(0.88) rotateX(10deg);
-    filter: blur(2.5px);
+    opacity: 0.35;
+    transform: translate3d(0, -44px, 0) scale(0.92);
     z-index: 9;
+}
+
+.lyric-line.prev-older {
+    opacity: 0;
+    transform: translate3d(0, -70px, 0) scale(0.85);
+    z-index: 8;
 }
 
 .lyric-line.entering {
     opacity: 0;
-    transform: translateY(32px) scale(0.9);
-    filter: blur(10px);
+    transform: translate3d(0, 24px, 0) scale(0.95);
 }
 
 /* ===== Zen Mode ===== */
@@ -655,14 +689,52 @@ video.pear-immersive-video {
     pointer-events: none;
 }
 
-.pear-immersive-ui.zen-mode .pear-immersive-bottom-bar {
-    transform: translateY(130px);
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+/* In Zen mode when idle, move bottom bar down to show only the slider */
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-bottom-bar {
+    transform: translateY(calc(100% - 14px));
+    opacity: 1;
+    pointer-events: auto;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 0 !important;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                background 0.3s ease,
+                border-color 0.3s ease;
 }
 
-.pear-immersive-ui.zen-mode .pear-immersive-lyrics {
-    transform: translateY(130px);
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) #pear-fullscreen-seek {
+    opacity: 0.85;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    height: 3px;
+    transition: all 0.25s ease;
+}
+
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) #pear-fullscreen-seek:hover {
+    opacity: 1;
+    height: 6px;
+}
+
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-time-row,
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-controls-row {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+
+/* In Zen mode when idle, lyrics container expands downward smoothly */
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-lyrics {
+    margin-bottom: 16px;
+    transition: margin-bottom 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-lyrics:not(.interactive-mode) {
+    transform: translateY(32px);
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .pear-immersive-ui.zen-mode .zen-toggle {
@@ -674,7 +746,7 @@ video.pear-immersive-video {
     opacity: 1;
 }
 
-/* Zen: restore on mouse move */
+/* Zen: restore on mouse move or proximity */
 .pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-group.left,
 .pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-group.center,
 .pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-group.right {
@@ -685,9 +757,28 @@ video.pear-immersive-video {
 }
 
 .pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-lyrics,
-.pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-bottom-bar {
+.pear-immersive-ui.zen-mode.bottom-active .pear-immersive-lyrics {
+    margin-bottom: 12px;
+    transition: margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-lyrics:not(.interactive-mode),
+.pear-immersive-ui.zen-mode.bottom-active .pear-immersive-lyrics:not(.interactive-mode) {
     transform: translateY(0);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pear-immersive-ui.zen-mode.bottom-active .pear-immersive-bottom-bar,
+.pear-immersive-ui.zen-mode.zen-temp-show .pear-immersive-bottom-bar,
+.pear-immersive-ui.zen-mode .pear-immersive-controls-row:hover,
+.pear-immersive-ui.zen-mode .pear-immersive-bottom-bar:focus-within {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    margin-bottom: 0;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s ease,
+                margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===== Next Song Indicator ===== */
@@ -697,8 +788,8 @@ video.pear-immersive-video {
     right: clamp(18px, 3vw, 44px);
     top: auto;
     transform: translateX(48px);
-    /* Solid dark — matches bottom bar */
-    background: #0d0d10;
+    /* Translucent dark glass — matches bottom bar */
+    background: linear-gradient(180deg, rgba(22, 22, 28, 0.88) 0%, rgba(13, 13, 17, 0.92) 100%);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 18px;
     padding: 14px 16px;
@@ -711,7 +802,7 @@ video.pear-immersive-video {
     z-index: 30;
     visibility: hidden;
     box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
         0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
@@ -832,20 +923,91 @@ video.pear-immersive-video {
 
 /* ===== Responsive — Phone (≤640px) ===== */
 @media (max-width: 640px) {
+    /* Player controls permanent only in phone mode when NOT in Zen mode */
+    .pear-immersive-bottom-bar,
+    .pear-immersive-ui:not(.zen-mode) .pear-immersive-bottom-bar,
+    .pear-immersive-ui.bottom-active .pear-immersive-bottom-bar,
+    .pear-immersive-ui.zen-temp-show .pear-immersive-bottom-bar {
+        position: relative !important;
+        z-index: 100 !important;
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+
+    /* In phone mode Zen mode when idle, move bottom bar down to show ONLY the slider */
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-bottom-bar {
+        position: relative !important;
+        z-index: 100 !important;
+        transform: translateY(calc(100% - 12px)) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 3px 0 3px !important;
+        margin-bottom: 0 !important;
+        transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                    background 0.3s ease !important;
+    }
+
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) #pear-fullscreen-seek {
+        opacity: 0.9 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        height: 3px !important;
+        min-width: 100% !important;
+        margin-bottom: 0 !important;
+        transition: all 0.25s ease !important;
+    }
+
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) #pear-fullscreen-seek:hover,
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) #pear-fullscreen-seek:active {
+        opacity: 1 !important;
+        height: 6px !important;
+    }
+
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-time-row,
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-controls-row {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+        display: none !important;
+    }
+
+    /* Lower, snug bottom bar when active in phone mode */
     .pear-immersive-bottom-bar {
-        padding: 10px 0 22px;
+        position: relative !important;
+        z-index: 100 !important;
+        padding: 5px 0 15px;
         gap: 8px;
         max-width: 100%;
         border-radius: 0;
         border-left: none;
         border-right: none;
+        border-bottom: none;
+        margin-bottom: 0;
+        background: linear-gradient(180deg, rgba(16, 16, 22, 0.90) 0%, rgba(10, 10, 14, 0.95) 100%);
+    }
+
+    .pear-immersive-time-row {
+        padding: 0 14px;
+        margin-top: 0;
+        margin-bottom: 0;
+        line-height: 1;
+    }
+
+    .pear-immersive-time {
+        font-size: 10px;
     }
 
     .pear-immersive-controls-row {
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        padding: 0 16px;
+        padding: 0 14px;
         gap: 8px;
     }
 
@@ -858,6 +1020,7 @@ video.pear-immersive-video {
         overflow: hidden;
         justify-content: space-between;
         align-items: center;
+        gap: 10px;
     }
 
     .pear-immersive-group.left .pear-immersive-text-container {
@@ -867,8 +1030,19 @@ video.pear-immersive-video {
     }
 
     .pear-immersive-mini-thumb {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+    }
+
+    .pear-immersive-title {
+        font-size: 13px;
+        line-height: 1.25;
+    }
+
+    .pear-immersive-artist {
+        font-size: 11px;
+        line-height: 1.25;
     }
 
     /* Row 2: playback centered */
@@ -878,53 +1052,67 @@ video.pear-immersive-video {
         width: 100%;
         justify-content: center;
         gap: 14px;
+        margin-top: 2px;
     }
 
-    /* Right group — floating vertical stack */
+    /* Right group — floating vertical stack positioned above lyrics */
     .pear-immersive-group.right {
-        position: absolute;
-        bottom: 168px;
-        right: 14px;
+        position: absolute !important;
+        bottom: 150px;
+        right: 12px;
         flex: none;
         gap: 6px;
-        z-index: 3000;
+        z-index: 10000 !important;
         display: flex;
         flex-direction: column;
         align-items: center;
-        pointer-events: auto;
-        background: #0d0d10;
-        border: 1px solid rgba(255, 255, 255, 0.09);
-        border-radius: 22px;
-        padding: 10px 7px;
+        pointer-events: auto !important;
+        background: rgba(13, 13, 16, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        padding: 8px 6px;
         box-shadow:
-            0 0 0 1px rgba(255, 255, 255, 0.04),
-            0 8px 32px rgba(0, 0, 0, 0.6);
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+            0 0 0 1px rgba(255, 255, 255, 0.06),
+            0 8px 32px rgba(0, 0, 0, 0.7);
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                     visibility 0s;
     }
 
     /* Auto-hide right group */
     .pear-immersive-ui:not(.sidebar-active) .pear-immersive-group.right {
         opacity: 0 !important;
-        visibility: hidden;
-        pointer-events: none;
-        transform: translateX(120px);
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                    visibility 0s linear 0.5s;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateX(120px) !important;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                    visibility 0s linear 0.4s;
     }
 
     /* Reveal right group */
-    .pear-immersive-ui.sidebar-active .pear-immersive-group.right {
+    .pear-immersive-ui.sidebar-active .pear-immersive-group.right,
+    .pear-immersive-group.right:hover,
+    .pear-immersive-group.right:focus-within {
         opacity: 1 !important;
-        visibility: visible;
-        pointer-events: auto;
-        transform: translateX(0);
-        z-index: 10000;
-        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateX(0) !important;
+        z-index: 10000 !important;
+        transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                     visibility 0s;
+    }
+
+    /* Ensure all sidebar buttons and elements are fully clickable on top of lyrics */
+    .pear-immersive-group.right button,
+    .pear-immersive-group.right .pear-immersive-btn,
+    .pear-immersive-group.right .pear-fullscreen-volume,
+    .pear-immersive-group.right .pear-fullscreen-volume * {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        position: relative;
+        z-index: 10001 !important;
     }
 
     .pear-immersive-group.right .pear-fullscreen-volume {
@@ -954,56 +1142,126 @@ video.pear-immersive-video {
         display: none !important;
     }
 
-
     .pear-immersive-group.center button {
         width: 38px;
         height: 38px;
     }
 
     .pear-immersive-group.center #pear-fullscreen-play {
-        width: 52px;
-        height: 52px;
+        width: 50px;
+        height: 50px;
     }
 
+    /* Move lyrics down in phone mode — anchored right above player controls */
+    .pear-immersive-lyrics,
     .pear-immersive-lyrics.interactive-mode {
-        width: 82%;
-        margin: auto;
+        width: 84%;
+        max-width: 480px;
+        flex: 0 1 auto !important;
+        height: clamp(160px, 32vh, 250px) !important;
+        max-height: 36vh !important;
+        margin-top: auto !important;
+        margin-bottom: 6px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 80%, transparent 100%) !important;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%, black 80%, transparent 100%) !important;
+        z-index: 15 !important;
+        transform: translateX(0);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 0.4s ease;
+        will-change: transform;
     }
 
-    .pear-immersive-lyrics p {
-        font-size: 20px;
+    /* Expand lyrics downward in phone mode Zen mode */
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-lyrics,
+    .pear-immersive-ui.zen-mode:not(.bottom-active):not(.zen-temp-show) .pear-immersive-lyrics.interactive-mode {
+        height: clamp(210px, 48vh, 380px) !important;
+        max-height: 52vh !important;
+        margin-bottom: 14px !important;
+    }
+
+    /* Move lyrics to the side when sidebar opens so it is centered in remaining space */
+    .pear-immersive-ui.sidebar-active .pear-immersive-lyrics,
+    .pear-immersive-ui.sidebar-active .pear-immersive-lyrics.interactive-mode,
+    .pear-immersive-ui:has(.pear-immersive-group.right:hover) .pear-immersive-lyrics,
+    .pear-immersive-ui:has(.pear-immersive-group.right:focus-within) .pear-immersive-lyrics {
+        transform: translateX(-30px) !important;
+    }
+
+    .pear-immersive-lyrics .lyrics-scroll-container {
+        padding: 10vh 16px 14vh 16px !important;
+        box-sizing: border-box;
+    }
+
+    .lyric-line-interactive {
+        font-size: clamp(17px, 4vw, 21px);
+        padding: 6px 14px;
+        margin: 4px 0;
+        line-height: 1.3;
+    }
+
+    .pear-immersive-lyrics:not(.interactive-mode) {
+        height: 70px !important;
+        flex: none !important;
+        margin-top: auto !important;
+        margin-bottom: 4px !important;
     }
 
     .pear-immersive-next-song {
         width: 178px;
         right: 14px;
-        bottom: 146px;
-        padding: 10px 12px;
-    }
-
-    .pear-immersive-time-row {
-        padding: 0 16px;
+        bottom: 114px;
+        padding: 8px 12px;
     }
 }
 
 /* ===== Responsive — Small phone (≤480px) ===== */
 @media (max-width: 480px) {
+
+    .pear-immersive-time-row {
+        padding: 0 10px;
+    }
+
     .pear-immersive-group.center {
-        gap: 12px;
+        gap: 10px;
+        margin-top: 1px;
     }
 
     .pear-immersive-group.center button {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
     }
 
     .pear-immersive-group.center #pear-fullscreen-play {
-        width: 48px;
-        height: 48px;
+        width: 44px;
+        height: 44px;
     }
 
-    .pear-immersive-lyrics p {
-        font-size: 18px;
+    .pear-immersive-lyrics,
+    .pear-immersive-lyrics.interactive-mode {
+        width: 84%;
+        height: clamp(140px, 30vh, 220px) !important;
+        max-height: 34vh !important;
+        margin-bottom: 4px !important;
+        z-index: 15 !important;
+        transform: translateX(0);
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                    opacity 0.4s ease;
+        will-change: transform;
+    }
+
+    /* Shift lyrics on small phone */
+    .pear-immersive-ui.sidebar-active .pear-immersive-lyrics,
+    .pear-immersive-ui.sidebar-active .pear-immersive-lyrics.interactive-mode,
+    .pear-immersive-ui:has(.pear-immersive-group.right:hover) .pear-immersive-lyrics,
+    .pear-immersive-ui:has(.pear-immersive-group.right:focus-within) .pear-immersive-lyrics {
+        transform: translateX(-26px) !important;
+    }
+
+    .pear-immersive-lyrics .lyrics-scroll-container {
+        padding: 8vh 12px 12vh 12px !important;
+        box-sizing: border-box;
     }
 
     .pear-immersive-next-song {
@@ -1011,35 +1269,46 @@ video.pear-immersive-video {
     }
 
     .lyric-line {
-        font-size: 19px;
+        font-size: 16px;
     }
 
     .lyric-line-interactive {
-        font-size: 19px;
+        font-size: 16px;
+        padding: 5px 10px;
+        margin: 3px 0;
     }
 
     .pear-immersive-mini-thumb {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+    }
+
+    .pear-immersive-group.right {
+        right: 8px;
+        padding: 6px 5px;
+        z-index: 10000 !important;
     }
 
     /* Auto-hide/reveal for smallest screens */
     .pear-immersive-ui:not(.sidebar-active) .pear-immersive-group.right {
         opacity: 0 !important;
-        visibility: hidden;
-        pointer-events: none;
-        transform: translateX(120px);
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateX(120px) !important;
     }
 
-    .pear-immersive-ui.sidebar-active .pear-immersive-group.right {
+    .pear-immersive-ui.sidebar-active .pear-immersive-group.right,
+    .pear-immersive-group.right:hover,
+    .pear-immersive-group.right:focus-within {
         opacity: 1 !important;
-        visibility: visible;
-        pointer-events: auto;
-        transform: translateX(0);
-        z-index: 10000;
-        background-color: rgba(0, 0, 0, 0.318);
-        backdrop-filter: blur(25px);
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translateX(0) !important;
+        z-index: 10000 !important;
+        background-color: rgba(13, 13, 16, 0.96);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
 }
 

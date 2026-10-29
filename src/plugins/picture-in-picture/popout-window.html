@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pear Music - Pop-out Player</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #0b0c10;
+      color: #e5e7eb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .pear-pip-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 12px 16px;
+      gap: 12px;
+      background: linear-gradient(180deg, rgba(24, 24, 32, 0.95) 0%, rgba(11, 12, 16, 0.98) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+    }
+
+    /* Header & Drag Region */
+    .pear-pip-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 28px;
+      -webkit-app-region: drag;
+    }
+    .pear-pip-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #10b981;
+    }
+    .pear-pip-logo {
+      width: 18px;
+      height: 18px;
+    }
+    .pear-pip-brand-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+    .pear-pip-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      -webkit-app-region: no-drag;
+    }
+    .pear-pip-header-btn {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .pear-pip-header-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .pear-pip-header-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Media Area */
+    .pear-pip-media-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      max-height: 220px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pear-pip-art-box {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .pear-pip-art-glow {
+      position: absolute;
+      top: -20%;
+      left: -20%;
+      width: 140%;
+      height: 140%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) brightness(0.4);
+      z-index: 1;
+    }
+    #pear-pip-artwork {
+      position: relative;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 8px;
+      z-index: 2;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      transition: opacity 0.25s ease;
+    }
+    #pear-pip-artwork:not([src]),
+    #pear-pip-artwork[src=""] {
+      opacity: 0;
+    }
+
+    /* Meta Info */
+    .pear-pip-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      text-align: center;
+      margin-top: 2px;
+    }
+    .pear-pip-title-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .pear-pip-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pear-pip-artist {
+      font-size: 13px;
+      color: #9ca3af;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Progress & Seek */
+    .pear-pip-progress-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .pear-pip-slider-wrapper {
+      position: relative;
+      height: 6px;
+      display: flex;
+      align-items: center;
+    }
+    .pear-pip-seek-slider {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 5;
+    }
+    .pear-pip-slider-wrapper::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+    .pear-pip-seek-bar-fill {
+      position: absolute;
+      height: 4px;
+      width: 0%;
+      background: #10b981;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      pointer-events: none;
+      transition: height 0.15s ease;
+    }
+    .pear-pip-slider-wrapper:hover .pear-pip-seek-bar-fill,
+    .pear-pip-slider-wrapper:hover::before {
+      height: 6px;
+    }
+    .pear-pip-times {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Controls */
+    .pear-pip-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 4px 0;
+    }
+    .pear-pip-btn {
+      background: transparent;
+      border: none;
+      color: #d1d5db;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .pear-pip-btn:hover {
+      color: #fff;
+      transform: scale(1.1);
+    }
+    .pear-pip-btn:active {
+      transform: scale(0.95);
+    }
+    .pear-pip-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+    .pear-pip-btn.sub-btn {
+      color: #6b7280;
+    }
+    .pear-pip-btn.sub-btn:hover {
+      color: #10b981;
+    }
+    .pear-pip-btn.sub-btn.active {
+      color: #10b981;
+    }
+    .pear-pip-btn.sub-btn svg {
+      width: 17px;
+      height: 17px;
+    }
+    .main-play-btn {
+      width: 48px;
+      height: 48px;
+      background: #10b981;
+      color: #0b0c10 !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+    .main-play-btn:hover {
+      background: #34d399;
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+    }
+    .main-play-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* Footer: Volume & Like */
+    .pear-pip-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .pear-pip-volume-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      max-width: 160px;
+    }
+    .pear-pip-vol-slider-wrap {
+      position: relative;
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .pear-pip-vol-slider {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 5;
+    }
+    .pear-pip-vol-fill {
+      height: 100%;
+      width: 100%;
+      background: #9ca3af;
+      border-radius: 4px;
+      pointer-events: none;
+    }
+    .pear-pip-volume-group:hover .pear-pip-vol-fill {
+      background: #10b981;
+    }
+  </style>
+</head>
+<body>
+  <div class="pear-pip-container">
+    <!-- Header with Window controls -->
+    <header class="pear-pip-header">
+      <div class="pear-pip-brand">
+        <svg class="pear-pip-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span class="pear-pip-brand-title">Pear Pop-out</span>
+      </div>
+      <div class="pear-pip-header-actions">
+        <button class="pear-pip-header-btn" id="pear-pip-min" title="Minimize">
+          <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none">
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+        <button class="pear-pip-header-btn" id="pear-pip-dock" title="Dock / Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Media Area -->
+    <div class="pear-pip-media-wrapper">
+      <div class="pear-pip-art-box">
+        <img id="pear-pip-artwork" src="" alt="Album Artwork" />
+        <div class="pear-pip-art-glow" id="pear-pip-art-glow"></div>
+      </div>
+    </div>
+
+    <!-- Song Meta -->
+    <div class="pear-pip-meta">
+      <div class="pear-pip-title-wrap">
+        <h2 class="pear-pip-title" id="pear-pip-title">Loading track...</h2>
+      </div>
+      <div class="pear-pip-artist" id="pear-pip-artist">-</div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="pear-pip-progress-section">
+      <div class="pear-pip-slider-wrapper">
+        <input type="range" class="pear-pip-seek-slider" id="pear-pip-seek" min="0" max="100" value="0" step="0.1" />
+        <div class="pear-pip-seek-bar-fill" id="pear-pip-seek-fill"></div>
+      </div>
+      <div class="pear-pip-times">
+        <span id="pear-pip-current-time">0:00</span>
+        <span id="pear-pip-total-time">0:00</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="pear-pip-controls">
+      <button class="pear-pip-btn sub-btn" id="pear-pip-shuffle" title="Shuffle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="16 3 21 3 21 8"/>
+          <line x1="4" y1="20" x2="21" y2="3"/>
+          <polyline points="21 16 21 21 16 21"/>
+          <line x1="15" y1="15" x2="21" y2="21"/>
+          <line x1="4" y1="4" x2="9" y2="9"/>
+        </svg>
+      </button>
+
+      <button class="pear-pip-btn" id="pear-pip-prev" title="Previous">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="19 20 9 12 19 4 19 20"/>
+          <line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+
+      <button class="pear-pip-btn main-play-btn" id="pear-pip-play" title="Play/Pause">
+        <svg id="pear-pip-play-icon" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        <svg id="pear-pip-pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+          <rect x="6" y="4" width="4" height="16"/>
+          <rect x="14" y="4" width="4" height="16"/>
+        </svg>
+      </button>
+
+      <button class="pear-pip-btn" id="pear-pip-next" title="Next">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 4 15 12 5 20 5 4"/>
+          <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </button>
+
+      <button class="pear-pip-btn sub-btn" id="pear-pip-repeat" title="Repeat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="17 1 21 5 17 9"/>
+          <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+          <polyline points="7 23 3 19 7 15"/>
+          <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Bottom Bar: Like & Volume -->
+    <footer class="pear-pip-footer">
+      <button class="pear-pip-btn sub-btn" id="pear-pip-like" title="Like">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+      </button>
+
+      <div class="pear-pip-volume-group">
+        <button class="pear-pip-btn sub-btn" id="pear-pip-vol-btn" title="Mute/Unmute">
+          <svg id="pear-pip-vol-high" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+          <svg id="pear-pip-vol-mute" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        </button>
+        <div class="pear-pip-vol-slider-wrap">
+          <input type="range" class="pear-pip-vol-slider" id="pear-pip-volume" min="0" max="100" value="100" />
+          <div class="pear-pip-vol-fill" id="pear-pip-vol-fill"></div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const ipcRenderer = (typeof require !== 'undefined' ? require('electron').ipcRenderer : null) || window.ipcRenderer;
+
+    const titleEl = document.getElementById('pear-pip-title');
+    const artistEl = document.getElementById('pear-pip-artist');
+    const artworkImg = document.getElementById('pear-pip-artwork');
+    const artGlow = document.getElementById('pear-pip-art-glow');
+    const playIcon = document.getElementById('pear-pip-play-icon');
+    const pauseIcon = document.getElementById('pear-pip-pause-icon');
+    const currentTimeEl = document.getElementById('pear-pip-current-time');
+    const totalTimeEl = document.getElementById('pear-pip-total-time');
+    const seekSlider = document.getElementById('pear-pip-seek');
+    const seekFill = document.getElementById('pear-pip-seek-fill');
+    const volHigh = document.getElementById('pear-pip-vol-high');
+    const volMute = document.getElementById('pear-pip-vol-mute');
+    const volSlider = document.getElementById('pear-pip-volume');
+    const volFill = document.getElementById('pear-pip-vol-fill');
+    const likeBtn = document.getElementById('pear-pip-like');
+    const repeatBtn = document.getElementById('pear-pip-repeat');
+    const shuffleBtn = document.getElementById('pear-pip-shuffle');
+
+    const formatTime = (secs) => {
+      if (isNaN(secs) || secs < 0) return '0:00';
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
+    let totalDuration = 0;
+    let isSeeking = false;
+    let idleTimer = null;
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+    const updateIdleState = (isPlaying) => {
+      if (isPlaying) {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+          idleTimer = null;
+        }
+      } else if (!idleTimer) {
+        idleTimer = setTimeout(() => {
+          sendCmd('close');
+        }, IDLE_TIMEOUT_MS);
+      }
+    };
+
+    // Receive state from main window
+    if (ipcRenderer) {
+      ipcRenderer.on('peard:sync-player-state', (_, state) => {
+        if (!state) return;
+
+        if (state.title && titleEl.textContent !== state.title) {
+          titleEl.textContent = state.title;
+          titleEl.title = state.title;
+        }
+        if (state.artist && artistEl.textContent !== state.artist) {
+          artistEl.textContent = state.artist;
+          artistEl.title = state.artist;
+        }
+        if (state.thumbnail && state.thumbnail.trim() !== '') {
+          if (artworkImg.src !== state.thumbnail) {
+            artworkImg.src = state.thumbnail;
+            artworkImg.style.opacity = '1';
+            artGlow.style.backgroundImage = `url("${state.thumbnail}")`;
+          }
+        }
+
+        // Play/Pause icon & idle check
+        updateIdleState(Boolean(state.isPlaying));
+        if (state.isPlaying) {
+          playIcon.style.display = 'none';
+          pauseIcon.style.display = 'block';
+        } else {
+          playIcon.style.display = 'block';
+          pauseIcon.style.display = 'none';
+        }
+
+        // Duration & Seek
+        if (typeof state.duration === 'number' && state.duration > 0) {
+          totalDuration = state.duration;
+          totalTimeEl.textContent = formatTime(state.duration);
+        }
+        if (typeof state.currentTime === 'number' && totalDuration > 0) {
+          currentTimeEl.textContent = formatTime(state.currentTime);
+          if (!isSeeking && document.activeElement !== seekSlider) {
+            const pct = (state.currentTime / totalDuration) * 100;
+            seekSlider.value = pct;
+            seekFill.style.width = pct + '%';
+          }
+        }
+
+        // Volume
+        if (typeof state.volume === 'number' && document.activeElement !== volSlider) {
+          volSlider.value = state.volume;
+          volFill.style.width = state.volume + '%';
+          const isMuted = state.volume === 0;
+          volHigh.style.display = isMuted ? 'none' : 'block';
+          volMute.style.display = isMuted ? 'block' : 'none';
+        }
+
+        // Like / Repeat / Shuffle
+        if (state.isLiked) {
+          likeBtn.style.color = '#10b981';
+        } else {
+          likeBtn.style.color = 'inherit';
+        }
+        if (state.repeatState && state.repeatState !== 'NONE' && state.repeatState !== 'false') {
+          repeatBtn.classList.add('active');
+        } else {
+          repeatBtn.classList.remove('active');
+        }
+        if (state.isShuffled) {
+          shuffleBtn.classList.add('active');
+        } else {
+          shuffleBtn.classList.remove('active');
+        }
+      });
+    }
+
+    const sendCmd = (action, value) => {
+      if (ipcRenderer) {
+        ipcRenderer.send('peard:player-command-from-popout', { action, value });
+      }
+    };
+
+    document.getElementById('pear-pip-dock').onclick = () => sendCmd('close');
+    document.getElementById('pear-pip-min').onclick = () => sendCmd('minimize');
+    document.getElementById('pear-pip-play').onclick = () => sendCmd('play-pause');
+    document.getElementById('pear-pip-prev').onclick = () => sendCmd('prev');
+    document.getElementById('pear-pip-next').onclick = () => sendCmd('next');
+    document.getElementById('pear-pip-like').onclick = () => sendCmd('like');
+    document.getElementById('pear-pip-shuffle').onclick = () => sendCmd('shuffle');
+    document.getElementById('pear-pip-repeat').onclick = () => sendCmd('repeat');
+
+    seekSlider.addEventListener('input', () => {
+      isSeeking = true;
+      seekFill.style.width = seekSlider.value + '%';
+    });
+    seekSlider.addEventListener('change', () => {
+      if (totalDuration > 0) {
+        const targetTime = (parseFloat(seekSlider.value) / 100) * totalDuration;
+        sendCmd('seek', targetTime);
+      }
+      isSeeking = false;
+    });
+
+    volSlider.addEventListener('input', () => {
+      const v = parseInt(volSlider.value, 10);
+      volFill.style.width = v + '%';
+      sendCmd('volume', v);
+    });
+
+    document.getElementById('pear-pip-vol-btn').onclick = () => {
+      const cur = parseInt(volSlider.value, 10);
+      const target = cur === 0 ? 80 : 0;
+      volSlider.value = target;
+      volFill.style.width = target + '%';
+      sendCmd('volume', target);
+    };
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === 'k') {
+        e.preventDefault();
+        sendCmd('play-pause');
+      } else if (e.code === 'ArrowRight' || e.key === 'l') {
+        e.preventDefault();
+        sendCmd('seek-relative', 5);
+      } else if (e.code === 'ArrowLeft' || e.key === 'j') {
+        e.preventDefault();
+        sendCmd('seek-relative', -5);
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        const nextVal = Math.min(100, parseInt(volSlider.value, 10) + 5);
+        volSlider.value = nextVal;
+        volFill.style.width = nextVal + '%';
+        sendCmd('volume', nextVal);
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        const nextVal = Math.max(0, parseInt(volSlider.value, 10) - 5);
+        volSlider.value = nextVal;
+        volFill.style.width = nextVal + '%';
+        sendCmd('volume', nextVal);
+      } else if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        sendCmd('close');
+      }
+    });
+  </script>
+</body>
+</html>

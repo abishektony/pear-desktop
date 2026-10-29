@@ -23,7 +23,7 @@ export default createPlugin({
   description: () => t('plugins.picture-in-picture.description'),
   restartNeeded: true,
   config: {
-    'enabled': false,
+    'enabled': true,
     'alwaysOnTop': true,
     'savePosition': true,
     'saveSize': false,

@@ -232,6 +232,20 @@ div:has(> .lyrics-picker) {
   }
 }
 
+body.pear-modal-open .lyrics-picker,
+body.pear-modal-open div:has(> .lyrics-picker),
+body:has(.pear-sleep-timer-modal.active) .lyrics-picker,
+body:has(.pear-sleep-timer-modal.active) div:has(> .lyrics-picker),
+body:has(#pear-sync-lyrics-modal.active) .lyrics-picker,
+body:has(#pear-sync-lyrics-modal.active) div:has(> .lyrics-picker),
+body:has(#pear-sleep-timer-modal.active) .lyrics-picker,
+body:has(#pear-sleep-timer-modal.active) div:has(> .lyrics-picker) {
+  z-index: -1 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* Animations */
 @keyframes lyrics-wobble {
   from {

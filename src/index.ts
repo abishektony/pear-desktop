@@ -120,7 +120,7 @@ app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
 // WaylandWindowDecorations: Required for Wayland decorations
 app.commandLine.appendSwitch(
   'enable-features',
-  'OverlayScrollbar,SharedArrayBuffer,UseOzonePlatform,WaylandWindowDecorations',
+  'OverlayScrollbar,SharedArrayBuffer,UseOzonePlatform,WaylandWindowDecorations,DocumentPictureInPictureAPI',
 );
 // Disable Fluent Scrollbar (for OverlayScrollbar)
 app.commandLine.appendSwitch('disable-features', 'FluentScrollbar');
@@ -380,6 +380,16 @@ async function createMainWindow() {
   };
 
   const win = new BrowserWindow(electronWindowSettings);
+
+  win.webContents.setWindowOpenHandler(() => {
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        alwaysOnTop: true,
+        autoHideMenuBar: true,
+      },
+    };
+  });
 
   await initHook(win);
   initTheme(win);

@@ -107,21 +107,30 @@ export function CompactLyricsRenderer() {
     return null;
 }
 
+export function resetCompactLyricData() {
+    setCurrentLyricData({
+        text: '',
+        romanization: undefined,
+        hasLyrics: false,
+    });
+}
+
 /**
  * Get the current lyric text with optional romanization
  * @param includeRomanization - Whether to include romanization
+ * @param fallbackToSymbol - Whether to return '♪' when no lyrics or empty (defaults to true)
  * @returns Current lyric text, optionally with romanization on a new line
  */
-export function getCurrentLyricText(includeRomanization: boolean = true): string {
+export function getCurrentLyricText(includeRomanization: boolean = true, fallbackToSymbol: boolean = true): string {
     const data = currentLyricData();
 
-    // If no lyrics are available at all, return music symbol
+    // If no lyrics are available at all, return music symbol if fallback allowed
     if (!data.hasLyrics) {
-        return '♪';
+        return fallbackToSymbol ? '♪' : '';
     }
 
-    // If we have lyrics but no current text (shouldn't happen, but handle it)
-    if (!data.text) {
+    // If we have lyrics but no current text or it's a placeholder symbol
+    if (!data.text || (data.text === '♪' && !fallbackToSymbol)) {
         return '';
     }
 

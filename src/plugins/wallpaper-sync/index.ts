@@ -49,19 +49,6 @@ export default createPlugin<
     'Streams now-playing video and artwork to Lively Wallpaper Living Room TV',
   restartNeeded: false,
   config: defaultWallpaperSyncConfig,
-  menu: async ({ getConfig, setConfig }) => {
-    const config = await getConfig();
-    return [
-      {
-        label: 'Enabled',
-        type: 'checkbox',
-        checked: config.enabled,
-        click() {
-          setConfig({ enabled: !config.enabled });
-        },
-      },
-    ];
-  },
 
   backend: {
     server: null,
@@ -70,7 +57,7 @@ export default createPlugin<
     currentSong: null,
     hasVideo: false,
 
-    start(ctx) {
+    async start(ctx) {
       if (ctx.window?.webContents) {
         try {
           ctx.window.webContents.setBackgroundThrottling(false);
@@ -109,9 +96,8 @@ export default createPlugin<
         });
       });
 
-      ctx.getConfig().then((cfg) => {
-        this.startServer(cfg.port || 26540, ctx);
-      });
+      const cfg = await ctx.getConfig();
+      this.startServer(cfg.port || 26540, ctx);
     },
 
     stop() {

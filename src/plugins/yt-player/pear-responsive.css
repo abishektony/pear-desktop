@@ -890,6 +890,7 @@ ytmusic-player-bar tp-yt-paper-icon-button:active {
         pointer-events: none !important;
         z-index: -99999 !important;
         overflow: hidden !important;
+        content-visibility: hidden !important;
     }
 
     ytmusic-browse-response {

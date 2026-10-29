@@ -35,7 +35,8 @@ const EmptyLine = (props: SyncedLineProps) => {
     <div
       class={`synced-line ${props.status}`}
       onClick={() => {
-        _ytAPI?.seekTo((props.line.timeInMs + 10) / 1000);
+        const offset = (window as any).pearLyricsOffset || 0;
+        _ytAPI?.seekTo(Math.max(0, (props.line.timeInMs - offset + 10) / 1000));
       }}
     >
       <div class="description ytmusic-description-shelf-renderer" dir="auto">
@@ -98,7 +99,8 @@ export const SyncedLine = (props: SyncedLineProps) => {
       <div
         class={`synced-line ${props.status}`}
         onClick={() => {
-          _ytAPI?.seekTo((props.line.timeInMs + 10) / 1000);
+          const offset = (window as any).pearLyricsOffset || 0;
+          _ytAPI?.seekTo(Math.max(0, (props.line.timeInMs - offset + 10) / 1000));
         }}
       >
         <div class="description ytmusic-description-shelf-renderer" dir="auto">

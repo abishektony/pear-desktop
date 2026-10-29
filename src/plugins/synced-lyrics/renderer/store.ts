@@ -41,6 +41,10 @@ export const currentLyrics = createRoot(() => createMemo(() => {
   return lyricsStore.lyrics[provider];
 }));
 
+export const resetLyricsStore = () => {
+  setLyricsStore('lyrics', () => initialData());
+};
+
 type VideoId = string;
 
 type SearchCacheData = Record<ProviderName, ProviderState>;
@@ -53,6 +57,7 @@ interface SearchCache {
 const searchCache = new Map<VideoId, SearchCache>();
 const isCurrentId = (id: string) => {
   if (getSongInfo().videoId === id) return true;
+  if ((window as any).pearCurrentSongInfo?.videoId === id) return true;
   try {
     const urlVid = new URL(window.location.href).searchParams.get('v');
     if (urlVid === id) return true;
