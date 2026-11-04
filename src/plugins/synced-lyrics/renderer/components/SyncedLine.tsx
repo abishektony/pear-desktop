@@ -84,6 +84,21 @@ const EmptyLine = (props: SyncedLineProps) => {
 export const SyncedLine = (props: SyncedLineProps) => {
   const text = createMemo(() => props.line.text.trim());
 
+  const wordsList = createMemo(() => {
+    if (props.line.words && props.line.words.length > 0) {
+      return props.line.words;
+    }
+    const parts = text().split(' ').filter(Boolean);
+    if (parts.length === 0) return [];
+    const dur = Math.max(500, props.line.duration);
+    const step = dur / parts.length;
+    return parts.map((part, idx) => ({
+      text: part,
+      startTime: props.line.timeInMs + Math.round(idx * step),
+      endTime: props.line.timeInMs + Math.round((idx + 1) * step),
+    }));
+  });
+
   const [romanization, setRomanization] = createSignal('');
   createEffect(() => {
     const input = canonicalize(text());
@@ -117,7 +132,6 @@ export const SyncedLine = (props: SyncedLineProps) => {
           <div
             class="text-lyrics"
             ref={(div: HTMLDivElement) => {
-              // TODO: Investigate the animation, even though the duration is properly set, all lines have the same animation duration
               div.style.setProperty(
                 '--lyrics-duration',
                 `${props.line.duration / 1000}s`,
@@ -126,19 +140,38 @@ export const SyncedLine = (props: SyncedLineProps) => {
             }}
             style={{ 'display': 'flex', 'flex-direction': 'column' }}
           >
-            <span>
-              <For each={text().split(' ')}>
-                {(word, index) => {
+            <span class="synced-line-words">
+              <For each={wordsList()}>
+                {(word) => {
+                  const isWordActive = () =>
+                    props.status === 'current' &&
+                    currentTime() >= word.startTime &&
+                    currentTime() < word.endTime;
+
+                  const hasWordPassed = () =>
+                    props.status === 'previous' ||
+                    (props.status === 'current' && currentTime() >= word.endTime);
+
+                  const wordProgress = () => {
+                    if (hasWordPassed()) return 1;
+                    if (!isWordActive()) return 0;
+                    const dur = word.endTime - word.startTime;
+                    if (dur <= 0) return 1;
+                    const elapsed = currentTime() - word.startTime;
+                    const linear = Math.min(1, Math.max(0, elapsed / dur));
+                    return linear * linear * (3 - 2 * linear);
+                  };
+
                   return (
                     <span
+                      class={`synced-word ${isWordActive() ? 'word-active' : ''} ${hasWordPassed() ? 'word-passed' : ''} ${!isWordActive() && !hasWordPassed() ? 'word-upcoming' : ''}`}
                       style={{
-                        'transition-delay': `${index() * 0.05}s`,
-                        'animation-delay': `${index() * 0.05}s`,
+                        '--word-progress': wordProgress().toFixed(2),
                       }}
                     >
                       <yt-formatted-string
                         text={{
-                          runs: [{ text: `${word} ` }],
+                          runs: [{ text: `${word.text} ` }],
                         }}
                       />
                     </span>

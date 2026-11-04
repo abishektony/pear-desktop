@@ -1,14 +1,16 @@
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { screen } from 'electron';
 
 import { createPlugin } from '@/utils';
 import { registerCallback, type SongInfo } from '@/providers/song-info';
 
+let electronScreen: typeof import('electron').screen | null = null;
+
 function getDisplaysInfo() {
   try {
-    const all = screen.getAllDisplays();
-    const primary = screen.getPrimaryDisplay();
+    if (!electronScreen) return { count: 1, displays: [] };
+    const all = electronScreen.getAllDisplays();
+    const primary = electronScreen.getPrimaryDisplay();
     return {
       count: all.length,
       primaryId: primary?.id,
@@ -27,12 +29,14 @@ export interface WallpaperSyncConfig {
   enabled: boolean;
   port: number;
   fps: number;
+  streamVideo: boolean;
 }
 
 export const defaultWallpaperSyncConfig: WallpaperSyncConfig = {
   enabled: true,
   port: 26540,
   fps: 24,
+  streamVideo: false,
 };
 
 export default createPlugin<
@@ -56,6 +60,8 @@ export default createPlugin<
     captureTimer: number | null;
     isVideoActive: boolean;
     currentSongInfo: SongInfo | null;
+    config: WallpaperSyncConfig;
+    onConfigChange?(newConfig: WallpaperSyncConfig): void;
     initCapture(): void;
     startLoop(): void;
     stopLoop(): void;
@@ -115,17 +121,24 @@ export default createPlugin<
         });
       });
 
+      try {
+        const electron = await import('electron');
+        electronScreen = electron.screen;
+      } catch (_) {}
+
       const onDisplayChange = () => {
         this.broadcast({
           type: 'DISPLAYS_INFO',
           displays: getDisplaysInfo(),
         });
       };
-      try {
-        screen.on('display-added', onDisplayChange);
-        screen.on('display-removed', onDisplayChange);
-        screen.on('display-metrics-changed', onDisplayChange);
-      } catch (_) {}
+      if (electronScreen) {
+        try {
+          electronScreen.on('display-added', onDisplayChange);
+          electronScreen.on('display-removed', onDisplayChange);
+          electronScreen.on('display-metrics-changed', onDisplayChange);
+        } catch (_) {}
+      }
 
       const cfg = await ctx.getConfig();
       this.startServer(cfg.port || 26540, ctx);
@@ -243,9 +256,16 @@ export default createPlugin<
     captureTimer: null,
     isVideoActive: false,
     currentSongInfo: null,
+    config: defaultWallpaperSyncConfig,
 
-    start(ctx) {
+    onConfigChange(newConfig: WallpaperSyncConfig) {
+      this.config = newConfig;
+      this.checkVideoState();
+    },
+
+    async start(ctx) {
       this.ipc = ctx.ipc;
+      this.config = (await ctx.getConfig()) || defaultWallpaperSyncConfig;
 
       // Keep the video element in the viewport and visible to Chromium's compositor
       // when the player panel is minimized, and restore full layout when open.
@@ -357,6 +377,15 @@ export default createPlugin<
     },
 
     checkVideoState() {
+      if (!this.config?.streamVideo) {
+        if (this.isVideoActive) {
+          this.isVideoActive = false;
+          this.ipc?.send('wallpaper-sync:video-state', { hasVideo: false });
+          this.stopLoop();
+        }
+        return;
+      }
+
       // Direct hardware/media check: video element exists, is actively playing, and has decoded video dimensions
       const hasFrames = Boolean(
         this.videoElement &&

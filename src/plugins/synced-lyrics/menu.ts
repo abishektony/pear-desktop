@@ -58,6 +58,28 @@ export const menu = async (
       type: 'submenu',
       submenu: [
         {
+          label: 'Apple Music Style',
+          toolTip: 'Fluid typography with glowing active word animation',
+          type: 'radio',
+          checked: config.lineEffect === 'apple',
+          click() {
+            ctx.setConfig({
+              lineEffect: 'apple',
+            });
+          },
+        },
+        {
+          label: 'Karaoke',
+          toolTip: 'Word-by-word progressive sweep and illumination',
+          type: 'radio',
+          checked: config.lineEffect === 'karaoke',
+          click() {
+            ctx.setConfig({
+              lineEffect: 'karaoke',
+            });
+          },
+        },
+        {
           label: t(
             'plugins.synced-lyrics.menu.line-effect.submenu.fancy.label',
           ),

@@ -31,9 +31,51 @@ export const [config, setConfig] =
 createEffect(() => {
   if (!config()?.enabled) return;
   const root = document.documentElement;
+  const effect = config()?.lineEffect || 'apple';
+  root.setAttribute('data-lyrics-effect', effect);
 
   // Set the line effect
-  switch (config()?.lineEffect) {
+  switch (effect) {
+    case 'apple':
+      root.style.setProperty(
+        '--lyrics-font-size',
+        'clamp(1.6rem, 2.2vmax, 3.2rem)',
+      );
+      root.style.setProperty('--lyrics-line-height', '1.4');
+      root.style.setProperty('--lyrics-width', '100%');
+      root.style.setProperty('--lyrics-padding', '1rem');
+      root.style.setProperty('--lyrics-animations', 'none');
+
+      root.style.setProperty('--lyrics-inactive-font-weight', '600');
+      root.style.setProperty('--lyrics-inactive-opacity', '0.38');
+      root.style.setProperty('--lyrics-inactive-scale', '0.96');
+      root.style.setProperty('--lyrics-inactive-offset', '0');
+
+      root.style.setProperty('--lyrics-active-font-weight', '700');
+      root.style.setProperty('--lyrics-active-opacity', '1');
+      root.style.setProperty('--lyrics-active-scale', '1.06');
+      root.style.setProperty('--lyrics-active-offset', '0');
+      break;
+    case 'karaoke':
+      root.style.setProperty(
+        '--lyrics-font-size',
+        'clamp(1.5rem, 1.9vmax, 3rem)',
+      );
+      root.style.setProperty('--lyrics-line-height', '1.35');
+      root.style.setProperty('--lyrics-width', '100%');
+      root.style.setProperty('--lyrics-padding', '0.8rem');
+      root.style.setProperty('--lyrics-animations', 'none');
+
+      root.style.setProperty('--lyrics-inactive-font-weight', '500');
+      root.style.setProperty('--lyrics-inactive-opacity', '0.35');
+      root.style.setProperty('--lyrics-inactive-scale', '1');
+      root.style.setProperty('--lyrics-inactive-offset', '0');
+
+      root.style.setProperty('--lyrics-active-font-weight', '800');
+      root.style.setProperty('--lyrics-active-opacity', '1');
+      root.style.setProperty('--lyrics-active-scale', '1.03');
+      root.style.setProperty('--lyrics-active-offset', '0');
+      break;
     case 'fancy':
       root.style.setProperty('--lyrics-font-size', '3rem');
       root.style.setProperty('--lyrics-line-height', '1.333');

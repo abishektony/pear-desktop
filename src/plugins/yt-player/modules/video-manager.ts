@@ -66,7 +66,7 @@ export class VideoManager {
         if (this.isFullscreenOpen()) {
             if (this.preferredMode === 'video' && !this.isImmersiveActive()) {
                 this.attachVideoToNormalPlayer();
-            } else if (this.normalVideoElement) {
+            } else if (this.normalVideoElement && !this.isImmersiveActive()) {
                 this.syncNormalVideoDisplay(this.normalVideoElement);
             }
         }
@@ -88,13 +88,13 @@ export class VideoManager {
             video.addEventListener('ended', onPause);
 
             video.addEventListener('loadedmetadata', () => {
-                if (this.isFullscreenOpen() && this.preferredMode === 'video') {
+                if (this.isFullscreenOpen() && this.preferredMode === 'video' && !this.isImmersiveActive()) {
                     this.syncNormalVideoDisplay(video);
                 }
             });
 
             video.addEventListener('resize', () => {
-                if (this.isFullscreenOpen() && this.preferredMode === 'video') {
+                if (this.isFullscreenOpen() && this.preferredMode === 'video' && !this.isImmersiveActive()) {
                     this.syncNormalVideoDisplay(video);
                 }
             });
@@ -135,10 +135,11 @@ export class VideoManager {
     }
 
     public syncNormalVideoDisplay(video: HTMLVideoElement): void {
+        if (this.isImmersiveActive()) return;
         if (!this.dom.fullscreenThumbTop) return;
         const container = this.dom.fullscreenThumbTop.parentElement;
 
-        const isVideoActive = this.isFullscreenOpen() && this.preferredMode === 'video' && !this.isImmersiveActive();
+        const isVideoActive = this.isFullscreenOpen() && this.preferredMode === 'video';
         const hasVideoTrack = video.videoWidth > 0 && video.videoHeight > 0;
 
         if (isVideoActive) {
@@ -210,6 +211,7 @@ export class VideoManager {
         if (this.availabilityInterval) return;
 
         this.availabilityInterval = window.setInterval(() => {
+            if (this.isImmersiveActive()) return;
             const video = this.getVideo();
             if (video && video.readyState > 0 && video.videoWidth > 0) {
                 if (this.isFullscreenOpen() && this.preferredMode === 'video' && !this.normalVideoElement) {

@@ -233,7 +233,10 @@ export class Miniplayer {
                 if (!this.immersivePlayer.isActive) {
                     this.videoManager.detachVideoFromNormalPlayer();
                 }
-                this.immersivePlayer.toggle(true);
+                const isImmersive = this.immersivePlayer.toggle(true);
+                if (!isImmersive && this.videoManager.getPreferredMode() === 'video') {
+                    this.videoManager.attachVideoToNormalPlayer();
+                }
             }
         });
 
@@ -861,7 +864,10 @@ export class Miniplayer {
             if (!this.immersivePlayer.isActive) {
                 this.videoManager.detachVideoFromNormalPlayer();
             }
-            this.immersivePlayer.toggle(true);
+            const isImmersive = this.immersivePlayer.toggle(true);
+            if (!isImmersive && this.videoManager.getPreferredMode() === 'video') {
+                this.videoManager.attachVideoToNormalPlayer();
+            }
         }
     }
 

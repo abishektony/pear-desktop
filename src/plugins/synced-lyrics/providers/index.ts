@@ -3,6 +3,11 @@ import * as z from 'zod';
 import type { LyricResult } from '../types';
 
 export enum ProviderNames {
+  BetterLyrics = 'BetterLyrics',
+  SimpMusic = 'SimpMusic',
+  KuGou = 'KuGou',
+  LyricsPlus = 'LyricsPlus',
+  YouTubeSubtitle = 'YouTubeSubtitle',
   YTMusic = 'YTMusic',
   LRCLib = 'LRCLib',
   MusixMatch = 'MusixMatch',

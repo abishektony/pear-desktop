@@ -164,32 +164,63 @@ export class ImmersivePlayer {
     }
 
 
+    public checkVideoDisplay() {
+        if (!this.isActive) return;
+
+        const video = (this.videoElement && this.videoElement.isConnected)
+            ? this.videoElement
+            : document.querySelector('video');
+
+        if (!video) {
+            this.showFallback();
+            return;
+        }
+
+        this.videoElement = video;
+
+        // Ensure video element is inside the fullscreen player
+        if (video.parentElement !== this.fullscreenPlayer) {
+            this.moveVideoToPlayer();
+        }
+
+        if (!video.classList.contains('pear-immersive-video')) {
+            video.classList.add('pear-immersive-video');
+        }
+
+        const hasVideoTrack = video.videoHeight > 0 && video.videoWidth > 0 && video.style.display !== 'none';
+
+        if (!hasVideoTrack) {
+            this.showFallback();
+        } else {
+            this.hideFallback();
+        }
+    }
+
     private monitorVideo() {
         setInterval(() => {
-            if (!this.isActive) return;
+            this.checkVideoDisplay();
+        }, 500);
 
-            if (!this.videoElement) {
-                const foundVideo = document.querySelector('video');
-                if (foundVideo) {
-                    this.videoElement = foundVideo;
-                    this.moveVideoToPlayer();
-                }
+        const hookVideoListeners = () => {
+            const video = document.querySelector('video');
+            if (video && !video.hasAttribute('data-peard-immersive-monitored')) {
+                video.setAttribute('data-peard-immersive-monitored', 'true');
+                const onVideoUpdate = () => {
+                    if (this.isActive) {
+                        this.checkVideoDisplay();
+                    }
+                };
+                video.addEventListener('loadedmetadata', onVideoUpdate);
+                video.addEventListener('loadeddata', onVideoUpdate);
+                video.addEventListener('resize', onVideoUpdate);
+                video.addEventListener('playing', onVideoUpdate);
+                video.addEventListener('play', onVideoUpdate);
+                video.addEventListener('canplay', onVideoUpdate);
             }
+        };
 
-            const video = this.videoElement || document.querySelector('video');
-
-            if (!video || video.videoHeight === 0 || video.style.display === 'none') {
-                this.showFallback();
-            } else {
-                if (!video.classList.contains('pear-immersive-video') && this.isActive) {
-                    video.classList.add('pear-immersive-video');
-                }
-                this.hideFallback();
-            }
-
-
-
-        }, 1000);
+        hookVideoListeners();
+        setInterval(hookVideoListeners, 2000);
     }
 
     private showFallback() {
@@ -212,7 +243,11 @@ export class ImmersivePlayer {
 
     private hideFallback() {
         this.fullscreenPlayer.classList.remove('show-fallback');
-        // Clear background if needed, but keeping it might be smoother for transitions
+        if (this.videoElement) {
+            this.videoElement.style.removeProperty('opacity');
+            this.videoElement.style.removeProperty('visibility');
+            this.videoElement.style.removeProperty('display');
+        }
     }
 
     public toggle(savePreference: boolean = true) {
@@ -241,12 +276,17 @@ export class ImmersivePlayer {
         if (this.videoElement) {
             this.moveVideoToPlayer();
             this.videoElement.classList.add('pear-immersive-video');
+            this.videoElement.style.removeProperty('opacity');
+            this.videoElement.style.removeProperty('visibility');
+            this.videoElement.style.removeProperty('display');
 
             // Force play as moving elements in DOM can pause them in Chrome/Electron
             this.videoElement.play().catch(e => {
                 console.warn('[ImmersivePlayer] Failed to play video after move:', e);
             });
         }
+
+        this.checkVideoDisplay();
 
         this.setupImmersiveUI();
         this.startLyricsLoop();
@@ -333,9 +373,13 @@ export class ImmersivePlayer {
 
         this.isActive = false;
         this.fullscreenPlayer.classList.remove('immersive-mode');
+        this.fullscreenPlayer.classList.remove('show-fallback');
 
         if (this.videoElement) {
             this.videoElement.classList.remove('pear-immersive-video');
+            this.videoElement.style.removeProperty('opacity');
+            this.videoElement.style.removeProperty('visibility');
+            this.videoElement.style.removeProperty('display');
             this.restoreVideo();
         }
 
@@ -387,28 +431,44 @@ export class ImmersivePlayer {
     // --- Video Moving Logic ---
     private moveVideoToPlayer() {
         if (!this.videoElement || !this.fullscreenPlayer) return;
-        this.originalParent = this.videoElement.parentElement;
-        this.originalNextSibling = this.videoElement.nextSibling;
-        if (this.fullscreenPlayer.firstChild) {
-            this.fullscreenPlayer.insertBefore(this.videoElement, this.fullscreenPlayer.firstChild);
-        } else {
-            this.fullscreenPlayer.appendChild(this.videoElement);
+        if (
+            this.videoElement.parentElement &&
+            this.videoElement.parentElement !== this.fullscreenPlayer
+        ) {
+            this.originalParent = this.videoElement.parentElement;
+            this.originalNextSibling = this.videoElement.nextSibling;
+        }
+        if (this.videoElement.parentElement !== this.fullscreenPlayer) {
+            if (this.fullscreenPlayer.firstChild) {
+                this.fullscreenPlayer.insertBefore(this.videoElement, this.fullscreenPlayer.firstChild);
+            } else {
+                this.fullscreenPlayer.appendChild(this.videoElement);
+            }
         }
     }
 
     private restoreVideo() {
-        if (!this.videoElement || !this.originalParent) return;
-        try {
-            if (this.originalNextSibling) {
-                this.originalParent.insertBefore(this.videoElement, this.originalNextSibling);
-            } else {
-                this.originalParent.appendChild(this.videoElement);
-            }
-        } catch (e) {
-            // Failed to restore video position
-            const playerContainer = document.querySelector('#player-video-wrapper') || document.querySelector('#player');
-            if (playerContainer) {
-                playerContainer.appendChild(this.videoElement);
+        if (!this.videoElement) return;
+        const targetParent =
+            (this.originalParent && this.originalParent.isConnected && this.originalParent !== this.fullscreenPlayer)
+                ? this.originalParent
+                : (document.querySelector<HTMLElement>('#player-video-wrapper') ||
+                   document.querySelector<HTMLElement>('#player') ||
+                   document.querySelector<HTMLElement>('.html5-video-player') ||
+                   document.querySelector<HTMLElement>('ytmusic-player'));
+
+        if (targetParent && this.videoElement.parentElement !== targetParent) {
+            try {
+                if (
+                    this.originalNextSibling &&
+                    this.originalNextSibling.parentNode === targetParent
+                ) {
+                    targetParent.insertBefore(this.videoElement, this.originalNextSibling);
+                } else {
+                    targetParent.appendChild(this.videoElement);
+                }
+            } catch (_) {
+                targetParent.appendChild(this.videoElement);
             }
         }
         this.originalParent = null;
@@ -922,6 +982,10 @@ export class ImmersivePlayer {
         }
         this.lyricElements = [];
         ensureLyricsLoaded();
+
+        if (this.isActive) {
+            this.checkVideoDisplay();
+        }
     }
 
     public clearCompactLyrics() {

@@ -14,6 +14,12 @@ export type SyncedLyricsPluginConfig = {
 
 export type LineLyricsStatus = 'previous' | 'current' | 'upcoming';
 
+export type WordLyric = {
+  text: string;
+  startTime: number;
+  endTime: number;
+};
+
 export type LineLyrics = {
   time: string;
   timeInMs: number;
@@ -21,9 +27,10 @@ export type LineLyrics = {
 
   text: string;
   status: LineLyricsStatus;
+  words?: WordLyric[];
 };
 
-export type LineEffect = 'fancy' | 'scale' | 'offset' | 'focus';
+export type LineEffect = 'fancy' | 'scale' | 'offset' | 'focus' | 'apple' | 'karaoke';
 
 export interface LyricResult {
   title: string;

@@ -136,11 +136,31 @@ export default defineConfig({
         viteResolve({
           'virtual:i18n': i18nImporter(),
           'virtual:plugins': pluginVirtualModuleGenerator('renderer'),
+          electron: `
+            export const ipcRenderer = typeof window !== 'undefined' ? window.ipcRenderer : undefined;
+            export const shell = {};
+            export const clipboard = {};
+            export const nativeImage = {};
+            export const webFrame = {};
+            export const dialog = {};
+            export const screen = {};
+            export const app = {};
+            export const net = {};
+            export const contextBridge = {};
+            export default { ipcRenderer, shell, clipboard, nativeImage, webFrame, dialog, screen, app, net, contextBridge };
+          `,
         }),
         withFilter(solidPlugin(), {
           load: { id: [/\.(tsx|jsx)$/, '/@solid-refresh'] },
         }),
       ],
+      define: {
+        '__dirname': '""',
+        '__filename': '""',
+      },
+      optimizeDeps: {
+        exclude: ['electron'],
+      },
       root: './src/',
       build: {
         lib: {

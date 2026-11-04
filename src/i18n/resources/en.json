@@ -883,6 +883,14 @@
         "line-effect": {
           "label": "Line effect",
           "submenu": {
+            "apple": {
+              "label": "Apple Music",
+              "tooltip": "Fluid typography with glowing active word animation"
+            },
+            "karaoke": {
+              "label": "Karaoke",
+              "tooltip": "Word-by-word progressive sweep and illumination"
+            },
             "fancy": {
               "label": "Fancy",
               "tooltip": "Use large, app-like effects on the current line"

@@ -148,6 +148,71 @@
   animation: var(--lyrics-animations);
 }
 
+/* Word-by-word synced lyrics styling */
+.synced-word {
+  display: inline-block;
+  white-space: pre-wrap;
+  transition: opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              text-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              color 0.2s ease;
+  transform-origin: left center;
+}
+
+.synced-word.word-upcoming {
+  opacity: var(--lyrics-inactive-opacity, 0.35) !important;
+  font-weight: 500 !important;
+}
+
+.synced-word.word-active {
+  opacity: 1 !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  transform: scale(1.04);
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.8),
+               0 0 32px rgba(255, 255, 255, 0.45);
+}
+
+.synced-word.word-passed {
+  opacity: 0.95 !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Apple Music Line Effect */
+[data-lyrics-effect="apple"] .synced-line:not(.current) .text-lyrics {
+  filter: blur(0.5px);
+  opacity: 0.38;
+  transition: filter 0.35s ease, opacity 0.35s ease, scale 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-lyrics-effect="apple"] .synced-line.current .text-lyrics {
+  filter: none;
+  opacity: 1;
+  scale: 1.05;
+  transition: filter 0.35s ease, opacity 0.35s ease, scale 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-lyrics-effect="apple"] .synced-word.word-active {
+  animation: apple-word-pulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes apple-word-pulse {
+  from {
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.7), 0 0 28px rgba(255, 255, 255, 0.35);
+  }
+  to {
+    text-shadow: 0 0 22px rgba(255, 255, 255, 0.95), 0 0 44px rgba(255, 255, 255, 0.55);
+  }
+}
+
+/* Karaoke Line Effect */
+[data-lyrics-effect="karaoke"] .synced-word.word-active {
+  color: #fffae0 !important;
+  text-shadow: 0 0 16px rgba(255, 230, 100, 0.8), 0 0 32px rgba(255, 200, 50, 0.4);
+}
+
 .lyrics-renderer {
   display: flex;
   flex-direction: column;
