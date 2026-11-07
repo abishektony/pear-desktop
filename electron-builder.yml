@@ -44,6 +44,7 @@ win:
 nsisWeb:
   runAfterFinish: false
 linux:
+  executableName: pear-music
   icon: assets/icon.png
   category: AudioVideo
   desktop:
