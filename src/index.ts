@@ -70,6 +70,11 @@ unhandled({
 // Prevent window being garbage collected
 let mainWindow: Electron.BrowserWindow | null;
 autoUpdater.autoDownload = false;
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'abishektony',
+  repo: 'pear-desktop',
+});
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -827,7 +832,7 @@ app.whenReady().then(async () => {
     }, 2000);
     autoUpdater.on('update-available', () => {
       const downloadLink =
-        'https://github.com/pear-devs/pear-desktop/releases/latest';
+        'https://github.com/abishektony/pear-desktop/releases/latest';
       const dialogOptions: Electron.MessageBoxOptions = {
         type: 'info',
         buttons: [
