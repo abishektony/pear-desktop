@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. Dates are displayed in UTC.
 
+#### [v3.13.1](https://github.com/pear-devs/pear-desktop/compare/v3.13.0...v3.13.1)
+
+- feat(synced-lyrics): Add syllable-by-syllable word-level synchronized lyrics with progressive word illumination, scale transformations, and glow effects
+- feat(synced-lyrics): Implement rich TTML (Timed Text Markup Language) parser supporting span-level timestamps and metadata
+- feat(synced-lyrics): Add new lyrics providers: BetterLyrics, KuGou, LyricsPlus, SimpMusic, and YouTubeSubtitle
+- feat(synced-lyrics): Add interactive Lyrics Picker with manual song/artist search and on-the-fly provider switching
+- feat(synced-lyrics): Add Apple Music and Karaoke line effects (`apple` with active word pulsing/blur, `karaoke` with golden progressive sweep)
+- fix(yt-player): Enhance Immersive Player video element tracking, dynamic fallback artwork switching, and smooth DOM reparenting
+- fix(yt-player): Resolve video stutter and pause issues during fullscreen / immersive transitions and properly restore video DOM on exit
+- fix(wallpaper-sync): Improve WebSocket live playback broadcast, display topology updates, and connection stability
+- chore(i18n): Add localized strings for lyrics line effects and new provider configurations
+
 #### [v3.13.0](https://github.com/pear-devs/pear-desktop/compare/v3.12.2...v3.13.0)
 
 - feat(wallpaper-sync): Add Wallpaper Sync plugin broadcasting live song metadata, playback progress, and album art over WebSocket
